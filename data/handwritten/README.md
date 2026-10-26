@@ -37,3 +37,13 @@ still empty.
 
 Format: `style ::: annotated`, with `{LABEL|surface}` markup. Deliberate
 spelling variants are declared on a `#variants:` line.
+
+## Status of the sets (2026-10-26)
+
+- `addresses_v1.txt` - SPENT. Its errors drove the first generator widening.
+- `addresses_v2.txt` - SPENT. Scored once; its errors drove the second round.
+- `addresses_v3.txt` - SPENT. Written after the third round of fixes and scored
+  once. Items are tagged T- (this round's fixes), R- (earlier fixes, new
+  instances: regression guards) or F- (constructs deliberately not trained for).
+  The T-unicode items are generated from the gazetteer and passed through NFC.
+- Next: a fresh `addresses_v4.txt` before reporting any new number.

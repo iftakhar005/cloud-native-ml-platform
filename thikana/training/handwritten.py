@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from thikana.schema import Example, Span
-from thikana.text import normalize_digits
+from thikana.text import normalize_digits, normalize_token
 from thikana.training.gazetteer import load_all
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "handwritten"
@@ -66,16 +66,20 @@ def load(path: Path = PATH) -> tuple[list[Item], set[str]]:
 def audit(items: list[Item], variants: set[str]) -> list[str]:
     """Problems with the GOLD labels. Fix the data, not the model."""
     f = load_all()
-    district = {n.strip().lower() for n in (*f["districts"]["name"], *f["districts"]["bn_name"])}
-    division = {n.strip().lower() for n in (*f["divisions"]["name"], *f["divisions"]["bn_name"])}
-    upazila = {n.strip().lower() for n in (*f["upazilas"]["name"], *f["upazilas"]["bn_name"])}
+    def names(*columns):  # NFC on both sides: a name typed either way must match
+        return {normalize_token(n.strip()).lower() for column in columns for n in column}
+
+    district = names(f["districts"]["name"], f["districts"]["bn_name"])
+    division = names(f["divisions"]["name"], f["divisions"]["bn_name"])
+    upazila = names(f["upazilas"]["name"], f["upazilas"]["bn_name"])
+    variants = {normalize_token(v) for v in variants}
     allowed = {"DISTRICT": district, "DIVISION": division, "UPAZILA": upazila}
 
     problems = []
     for item in items:
         e = item.example
         for s in e.spans:
-            surface = normalize_digits(e.text[s.start:s.end]).strip().lower()
+            surface = normalize_token(normalize_digits(e.text[s.start:s.end]).strip()).lower()
             if s.label == "POSTCODE" and not re.fullmatch(r"\d{4}", surface):
                 problems.append(f"#{item.id} POSTCODE {surface!r} is not 4 digits")
             if s.label in allowed and surface not in allowed[s.label] and surface not in variants:

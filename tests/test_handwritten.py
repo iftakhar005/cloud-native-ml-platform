@@ -101,3 +101,44 @@ def test_every_v2_gold_span_lands_on_token_boundaries():
         tokens = tokenize(normalize_digits(item.example.text))
         tags = to_bio(tokens, item.example.spans)
         assert bio_to_spans(tokens, tags) == list(item.example.spans), item.example.text
+
+
+# ---- v3: written after the three fixes and the final retrain, scored once -----
+
+def test_v3_loads_audits_clean_and_has_all_three_groups():
+    items, variants = load(path_for("v3"))
+    assert len(items) >= 65
+    assert audit(items, variants) == []
+    assert {i.style[:2] for i in items} == {"T-", "R-", "F-"}
+    assert {s.label for i in items for s in i.example.spans} == set(ENTITY_TYPES)
+
+
+def test_v3_shares_no_address_with_the_spent_v1_and_v2_sets():
+    earlier = {i.example.text for v in ("v1", "v2") for i in load(path_for(v))[0]}
+    v3 = {i.example.text for i in load(path_for("v3"))[0]}
+    assert earlier.isdisjoint(v3)
+
+
+def test_v3_unicode_items_really_exercise_the_nfc_fix():
+    items, _ = load(path_for("v3"))
+    unicode_items = [i for i in items if i.style == "T-unicode"]
+    assert len(unicode_items) == 8
+    for item in unicode_items:
+        assert unicodedata.normalize("NFC", item.example.text) == item.example.text
+        # য় ড় ঢ় are two codepoints in NFC: at least one such name per item
+        assert any(pair in item.example.text for pair in
+                   ("\u09af\u09bc", "\u09a1\u09bc", "\u09a2\u09bc")), item.example.text
+
+
+def test_v3_upazila_first_items_really_start_with_an_upazila():
+    items, _ = load(path_for("v3"))
+    firsts = [i.example.spans[0].label for i in items if i.style == "T-upazila"]
+    assert sum(label == "UPAZILA" for label in firsts) >= 9
+
+
+def test_every_v3_gold_span_lands_on_token_boundaries():
+    items, _ = load(path_for("v3"))
+    for item in items:
+        tokens = tokenize(normalize_digits(item.example.text))
+        tags = to_bio(tokens, item.example.spans)
+        assert bio_to_spans(tokens, tags) == list(item.example.spans), item.example.text

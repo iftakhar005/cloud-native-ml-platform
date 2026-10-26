@@ -20,7 +20,7 @@ from thikana.training.evaluate import REPORTS, paired_bootstrap, score
 from thikana.training.handwritten import audit, load, path_for
 from thikana.training.probe import mark
 from thikana.training.synth import build_places, split_places
-from thikana.training.train import MODELS, build_vocab
+from thikana.training.train import MODELS
 
 CHOSEN = "crf_v1_surface_context"
 
@@ -36,12 +36,11 @@ def main() -> None:
 
     train_places = split_places(build_places())["train"]
     systems = {"rule_baseline": Baseline(train_places).predict}
-    for name, vocab in (("crf_v1_surface_context", None),
-                        ("crf_v2_plus_gazetteer", build_vocab(train_places))):
+    for name in ("crf_v1_surface_context", "crf_v2_plus_gazetteer", "crf_district_memory"):
         path = MODELS / f"{name}.crfsuite"
         if not path.exists():
             sys.exit(f"{path} is missing: run  python -m thikana.training.train  first")
-        systems[name] = AddressParser(path, vocab).predict
+        systems[name] = AddressParser.load(path).predict
 
     preds = {n: [f(e.text) for e in gold] for n, f in systems.items()}
     scores = {n: score(gold, p) for n, p in preds.items()}
@@ -63,7 +62,8 @@ def main() -> None:
 
     comparisons = {}
     for a, b in (("rule_baseline", "crf_v1_surface_context"),
-                 ("crf_v1_surface_context", "crf_v2_plus_gazetteer")):
+                 ("crf_v1_surface_context", "crf_v2_plus_gazetteer"),
+                 ("crf_v1_surface_context", "crf_district_memory")):
         ci = paired_bootstrap(gold, preds[a], preds[b])
         comparisons[f"{b} minus {a}"] = ci
         print(f"\nmicro F1 {b} minus {a}: {ci['mean']:+.3f}  "
@@ -83,18 +83,20 @@ def main() -> None:
         print(f"{style:10s}{len(idx):4d}" + "".join(f"{row[n]:24.3f}" for n in systems))
 
     group_scores = {}
-    groups = {"T": [i for i, it in enumerate(items) if it.style.startswith("T-")],
-              "F": [i for i, it in enumerate(items) if it.style.startswith("F-")]}
+    names = {"T": "targeted", "R": "regression", "F": "fresh"}
+    groups = {k: [i for i, it in enumerate(items) if it.style.startswith(k + "-")] for k in names}
     if groups["T"] and groups["F"]:
-        print("\nTARGETED (T-) = groups the generator was widened for; "
-              "FRESH (F-) = deliberately NOT trained for")
-        print(f"{'group':10s}{'n':>4s}" + "".join(f"{n:>24s}" for n in systems))
-        for key, name in (("T", "targeted"), ("F", "fresh")):
+        print("\nTARGETED (T-) = this round's fixes; REGRESSION (R-) = last round's fixes, "
+              "new instances; FRESH (F-) = deliberately NOT trained for")
+        print(f"{'group':11s}{'n':>4s}" + "".join(f"{n:>24s}" for n in systems))
+        for key, name in names.items():
             idx = groups[key]
+            if not idx:
+                continue
             row = {n: score([gold[i] for i in idx], [preds[n][i] for i in idx])["micro"]["f1"]
                    for n in systems}
             group_scores[name] = {"n": len(idx), **row}
-            print(f"{name:10s}{len(idx):4d}" + "".join(f"{row[n]:24.3f}" for n in systems))
+            print(f"{name:11s}{len(idx):4d}" + "".join(f"{row[n]:24.3f}" for n in systems))
 
     wrong = [i for i, e in enumerate(gold)
              if {(s.start, s.end, s.label) for s in e.spans}
