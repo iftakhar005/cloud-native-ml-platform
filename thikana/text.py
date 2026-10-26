@@ -7,6 +7,7 @@ differently, the model would silently see input it never trained on.
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 
 from thikana.schema import OUTSIDE, Span
@@ -25,6 +26,17 @@ class Token:
     text: str
     start: int
     end: int
+
+
+def normalize_token(text: str) -> str:
+    """NFC form of ONE token, for features and lookups.
+
+    A user's keyboard may type Bangla য় ড় ঢ় as one codepoint or two; both
+    render identically and NFC makes them the same string. Applied per token,
+    never to the whole text: NFC changes string length, which would shift every
+    character offset the API returns on the user's original input.
+    """
+    return unicodedata.normalize("NFC", text)
 
 
 def normalize_digits(text: str) -> str:

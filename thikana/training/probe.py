@@ -19,8 +19,7 @@ import sys
 from dataclasses import dataclass
 
 from thikana.model import AddressParser
-from thikana.training.synth import build_places, split_places
-from thikana.training.train import MODELS, build_vocab
+from thikana.training.train import MODELS
 
 
 @dataclass(frozen=True)
@@ -119,8 +118,7 @@ def mark(text: str, spans) -> str:
 
 
 def load(name: str) -> AddressParser:
-    vocab = build_vocab(split_places(build_places())["train"]) if "gazetteer" in name else None
-    return AddressParser(MODELS / f"{name}.crfsuite", vocab)
+    return AddressParser.load(MODELS / f"{name}.crfsuite")
 
 
 def main() -> None:

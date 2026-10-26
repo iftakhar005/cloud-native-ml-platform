@@ -11,7 +11,7 @@ from collections import Counter, defaultdict
 
 from thikana.model import AddressParser
 from thikana.training.synth import build_datasets
-from thikana.training.train import MODELS, build_vocab
+from thikana.training.train import MODELS
 
 
 def classify(gold, predicted) -> str:
@@ -31,8 +31,7 @@ def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     name = sys.argv[1] if len(sys.argv) > 1 else "crf_v2_plus_gazetteer"
     splits, data = build_datasets()
-    vocab = build_vocab(splits["train"]) if "gazetteer" in name else None
-    parser = AddressParser(MODELS / f"{name}.crfsuite", vocab)
+    parser = AddressParser.load(MODELS / f"{name}.crfsuite")
 
     outcomes: dict[str, Counter] = defaultdict(Counter)
     samples: dict[tuple[str, str], list] = defaultdict(list)

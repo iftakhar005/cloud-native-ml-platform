@@ -4,6 +4,11 @@ Run:  python -m thikana.training.train
 
 The test split is deliberately not touched here: it is for one final report,
 after every choice (features, regularisation) has been made on dev.
+
+Variants (each changes ONE thing relative to the previous idea):
+  crf_v1_surface_context  words, affixes, shapes, context, seen-before, separators
+  crf_v2_plus_gazetteer   v1 + "this token is a district / division / upazila name"
+  crf_district_memory     v1 + "a district name appears before / after this token"
 """
 
 from __future__ import annotations
@@ -18,7 +23,7 @@ import pycrfsuite
 from thikana.features import Vocab, sentence_features
 from thikana.model import AddressParser
 from thikana.schema import ENTITY_TYPES
-from thikana.text import normalize_digits, tokenize, to_bio
+from thikana.text import normalize_digits, normalize_token, tokenize, to_bio
 from thikana.training.baseline import Baseline
 from thikana.training.evaluate import REPORTS, paired_bootstrap, score
 from thikana.training.synth import DATASET_SEEDS, DATASET_SIZES, build_datasets
@@ -29,43 +34,53 @@ HYPERPARAMS = {"c1": 0.1, "c2": 0.05, "max_iterations": 150,
 
 
 def build_vocab(places) -> Vocab:
-    """Single lowercase tokens of district / division / administrative-upazila names."""
+    """Single NFC-lowercase tokens of district / division / administrative-upazila names."""
     names: dict[str, set[str]] = {"district": set(), "division": set(), "upazila": set()}
     for p in places:
         names["district"] |= {p.district, p.district_bn}
         names["division"] |= {p.division, p.division_bn}
         if p.upazila_admin:  # decision D8
             names["upazila"] |= {p.upazila, p.upazila_bn}
-    return {kind: frozenset(t.text.lower() for name in group if name for t in tokenize(name))
+    return {kind: frozenset(normalize_token(t.text).lower()
+                            for name in group if name for t in tokenize(name))
             for kind, group in names.items()}
 
 
-def train_model(examples, path: Path, vocab: Vocab | None = None) -> float:
+def train_model(examples, path: Path, vocab: Vocab | None = None,
+                memory: bool = False) -> float:
+    """Train one model; the vocabulary and flags it needs are saved beside it."""
     trainer = pycrfsuite.Trainer(verbose=False)
     for example in examples:
         tokens = tokenize(normalize_digits(example.text))
-        trainer.append(sentence_features(tokens, vocab), to_bio(tokens, example.spans))
+        trainer.append(sentence_features(tokens, vocab, memory), to_bio(tokens, example.spans))
     trainer.set_params(HYPERPARAMS)
     path.parent.mkdir(exist_ok=True)
     started = time.perf_counter()
     trainer.train(str(path))
-    return time.perf_counter() - started
+    elapsed = time.perf_counter() - started
+    path.with_suffix(".json").write_text(json.dumps({
+        "memory": memory,
+        "vocab": {k: sorted(v) for k, v in vocab.items()} if vocab else None,
+    }, ensure_ascii=False), encoding="utf-8")
+    return elapsed
 
 
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     splits, data = build_datasets()
     dev = data["dev"]
+    vocab = build_vocab(splits["train"])
 
     base_pred = [Baseline(splits["train"]).predict(e.text) for e in dev]
     results = {"rule_baseline": score(dev, base_pred)}
     predictions = {"rule_baseline": base_pred}
     meta = {}
-    for name, vocab in (("crf_v1_surface_context", None),
-                        ("crf_v2_plus_gazetteer", build_vocab(splits["train"]))):
+    for name, v, memory in (("crf_v1_surface_context", None, False),
+                            ("crf_v2_plus_gazetteer", vocab, False),
+                            ("crf_district_memory", {"district": vocab["district"]}, True)):
         path = MODELS / f"{name}.crfsuite"
-        seconds = train_model(data["train"], path, vocab)
-        parser = AddressParser(path, vocab)
+        seconds = train_model(data["train"], path, v, memory)
+        parser = AddressParser.load(path)
         predictions[name] = [parser.predict(e.text) for e in dev]
         results[name] = score(dev, predictions[name])
         meta[name] = {"train_seconds": round(seconds, 1), "model_bytes": path.stat().st_size}
@@ -82,7 +97,8 @@ def main() -> None:
 
     comparisons = {}
     for a, b in (("rule_baseline", "crf_v1_surface_context"),
-                 ("crf_v1_surface_context", "crf_v2_plus_gazetteer")):
+                 ("crf_v1_surface_context", "crf_v2_plus_gazetteer"),
+                 ("crf_v1_surface_context", "crf_district_memory")):
         ci = paired_bootstrap(dev, predictions[a], predictions[b])
         comparisons[f"{b} minus {a}"] = ci
         print(f"\nmicro F1, {b} minus {a}: {ci['mean']:+.3f}   "

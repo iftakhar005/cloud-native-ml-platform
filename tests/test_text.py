@@ -1,7 +1,7 @@
 import pytest
 
 from thikana.schema import Example, Span
-from thikana.text import bio_to_spans, normalize_digits, tokenize, to_bio
+from thikana.text import bio_to_spans, normalize_digits, normalize_token, tokenize, to_bio
 
 
 def span_of(text, piece, label):
@@ -67,3 +67,23 @@ def test_overlapping_spans_are_rejected_at_construction():
 def test_unknown_label_is_rejected():
     with pytest.raises(ValueError, match="unknown label"):
         Span(0, 3, "CITY")  # CITY was dropped in decision D1
+
+
+# Bangla য় as ONE codepoint (the gazetteer's form) and as TWO (what NFC gives).
+PRECOMPOSED = "\u0995\u09be\u0989\u09a8\u09bf\u09df\u09be"           # Kaunia
+DECOMPOSED = "\u0995\u09be\u0989\u09a8\u09bf\u09af\u09bc\u09be"
+
+
+def test_both_keyboard_forms_normalise_to_the_same_token():
+    assert PRECOMPOSED != DECOMPOSED  # different strings that render identically
+    assert normalize_token(PRECOMPOSED) == normalize_token(DECOMPOSED)
+
+
+def test_normalising_a_token_never_moves_a_character_offset():
+    # NFC changes a string's LENGTH, so it must only ever be applied per token,
+    # after tokenising: offsets still point into the user's original text.
+    for form in (PRECOMPOSED, DECOMPOSED):
+        text = f"House 5, {form}, Dhaka"
+        tokens = tokenize(text)
+        assert [text[t.start:t.end] for t in tokens] == [t.text for t in tokens]
+        assert len(normalize_token(PRECOMPOSED)) != len(PRECOMPOSED)

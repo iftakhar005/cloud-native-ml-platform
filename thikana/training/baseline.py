@@ -18,7 +18,7 @@ import re
 from collections import defaultdict
 
 from thikana.schema import Span
-from thikana.text import Token, normalize_digits, tokenize
+from thikana.text import Token, normalize_digits, normalize_token, tokenize
 
 _F = re.IGNORECASE
 _NUM = r"\d+[a-z]?(?:/\d+)?"
@@ -81,7 +81,7 @@ class Baseline:
 
     @staticmethod
     def _key(tokens: list[Token]) -> tuple[str, ...]:
-        return tuple(t.text.lower() for t in tokens)
+        return tuple(normalize_token(t.text).lower() for t in tokens)
 
     @staticmethod
     def _choose(labels: set[str], district_seen: bool) -> str:
@@ -139,7 +139,7 @@ class Baseline:
         group: list[Token] = []
         for i, token in enumerate([*tokens, None]):
             is_area_word = (token is not None and not covered[i] and _is_word(token)
-                            and token.text.lower() not in STOPWORDS)
+                            and normalize_token(token.text).lower() not in STOPWORDS)
             if is_area_word:
                 group.append(token)
             elif group:

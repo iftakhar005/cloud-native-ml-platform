@@ -7,7 +7,7 @@ one code path means training and serving cannot silently drift apart.
 
 from __future__ import annotations
 
-from thikana.text import Token
+from thikana.text import Token, normalize_token
 
 SEPARATORS = {",", ";"}
 
@@ -35,15 +35,27 @@ def shape(text: str) -> str:
     return "".join(out)
 
 
-def sentence_features(tokens: list[Token], vocab: Vocab | None = None) -> list[dict]:
-    words = [t.text.lower() for t in tokens]
-    shapes = [shape(t.text) for t in tokens]
+def sentence_features(tokens: list[Token], vocab: Vocab | None = None,
+                      memory: bool = False) -> list[dict]:
+    """Features per token.
+
+    memory=True adds RELATIONAL district features (a district name earlier or
+    later in the address). A linear-chain CRF sees one label back, so it cannot
+    know that a district occurred two entities ago (`Bagerhat-9300, Khulna`);
+    decision D1 (the second district-like name is the DIVISION) needs exactly that.
+    """
+    if memory and not (vocab and "district" in vocab):
+        raise ValueError("memory features need a vocab with a 'district' entry")
+    texts = [normalize_token(t.text) for t in tokens]  # NFC, so both keyboard forms match
+    words = [t.lower() for t in texts]
+    shapes = [shape(t) for t in texts]
     total_separators = sum(w in SEPARATORS for w in words)
     n = len(tokens)
+    in_district = [memory and w in vocab["district"] for w in words]
 
     features, seen, separators_so_far = [], set(), 0
-    for i, token in enumerate(tokens):
-        w, raw = words[i], token.text
+    for i in range(n):
+        w, raw = words[i], texts[i]
         is_word = any(c.isalpha() or "ঀ" <= c <= "৿" for c in raw)
         if w in SEPARATORS:
             separators_so_far += 1
@@ -81,6 +93,14 @@ def sentence_features(tokens: list[Token], vocab: Vocab | None = None) -> list[d
             for kind, names in vocab.items():
                 if w in names:
                     f[f"gaz_{kind}"] = 1.0
+
+        if memory:
+            f["district_before"] = min(sum(in_district[:i]), 2)
+            f["district_after"] = min(sum(in_district[i + 1:]), 2)
+            if i > 0 and in_district[i - 1]:
+                f["district_prev"] = 1.0
+            if i < n - 1 and in_district[i + 1]:
+                f["district_next"] = 1.0
 
         if is_word:
             seen.add(w)

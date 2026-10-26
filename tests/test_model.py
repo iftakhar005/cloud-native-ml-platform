@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from thikana.model import AddressParser
@@ -40,3 +42,38 @@ def test_vocab_follows_decision_d8():
     vocab = build_vocab(split_places(build_places())["train"])
     assert "dhaka" in vocab["district"] and "dhaka" in vocab["division"]
     assert "gulshan" not in vocab["upazila"]  # a thana, not an administrative upazila
+
+
+def test_a_model_gives_identical_spans_for_both_bangla_keyboard_forms(trained):
+    precomposed = "\u0995\u09be\u0989\u09a8\u09bf\u09df\u09be"
+    decomposed = "\u0995\u09be\u0989\u09a8\u09bf\u09af\u09bc\u09be"
+    parser = AddressParser(trained)
+
+    def shape_of(text):  # spans, but compared by label and token count, not by offset
+        return [(s.label, len(text[s.start:s.end].split())) for s in parser.predict(text)]
+
+    a, b = f"House 5, {precomposed}, Dhaka 1209", f"House 5, {decomposed}, Dhaka 1209"
+    assert shape_of(a) == shape_of(b)
+    # character offsets differ (the two forms differ in length) but each is valid
+    for text in (a, b):
+        for span in parser.predict(text):
+            assert 0 <= span.start < span.end <= len(text)
+
+
+def test_load_reads_the_vocab_and_flags_saved_beside_the_model(tmp_path):
+    places = split_places(build_places())["train"]
+    vocab = {"district": build_vocab(places)["district"]}
+    path = tmp_path / "memory.crfsuite"
+    train_model(generate(places, 200, seed=2), path, vocab, memory=True)
+
+    meta = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
+    assert meta["memory"] is True and "dhaka" in meta["vocab"]["district"]
+
+    parser = AddressParser.load(path)
+    assert parser.memory is True and "dhaka" in parser.vocab["district"]
+    assert parser.predict("Mazara, Dhaka 1212")  # works end to end
+
+
+def test_load_without_a_meta_file_means_no_vocab_and_no_memory(trained):
+    parser = AddressParser.load(trained)
+    assert parser.vocab is None and parser.memory is False

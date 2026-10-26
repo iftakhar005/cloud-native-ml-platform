@@ -102,3 +102,10 @@ def test_scoring_is_strict_about_boundaries():
     gold = [Example("Dhaka Cantt.", (Span(0, 12, "AREA"),))]
     result = score(gold, [[Span(0, 11, "AREA")]])  # one character short
     assert result["micro"]["f1"] == 0.0
+
+
+def test_the_baseline_recognises_a_bangla_name_in_both_keyboard_forms(baseline):
+    precomposed = "\u09ae\u09df\u09ae\u09a8\u09b8\u09bf\u0982\u09b9"   # Mymensingh, gazetteer form
+    decomposed = "\u09ae\u09af\u09bc\u09ae\u09a8\u09b8\u09bf\u0982\u09b9"  # the NFC form
+    for form in (precomposed, decomposed):
+        assert labelled(baseline, f"Mazara, {form}")[form] == "DISTRICT"

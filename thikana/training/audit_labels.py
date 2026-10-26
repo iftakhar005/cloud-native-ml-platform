@@ -10,7 +10,7 @@ from __future__ import annotations
 import sys
 from collections import Counter, defaultdict
 
-from thikana.text import normalize_digits, tokenize, to_bio
+from thikana.text import normalize_digits, normalize_token, tokenize, to_bio
 from thikana.training.synth import build_datasets
 
 NAME_LABELS = ("AREA", "UPAZILA", "DISTRICT", "DIVISION")
@@ -55,7 +55,7 @@ def label_sets(examples) -> dict[str, Counter]:
     for example in examples:
         for span in example.spans:
             if span.label in NAME_LABELS:
-                surface = normalize_digits(example.text[span.start:span.end]).lower()
+                surface = normalize_token(normalize_digits(example.text[span.start:span.end])).lower()
                 seen[surface][span.label] += 1
     return seen
 
