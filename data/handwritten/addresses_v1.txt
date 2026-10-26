@@ -1,0 +1,99 @@
+# HAND-WRITTEN evaluation set v1. NOT REAL ADDRESSES. Written by an AI assistant
+# from general knowledge of Bangladeshi address conventions; labels follow
+# docs/label-schema.md (D1-D9, with D7 as implemented). See README.md here.
+#
+# Format:  style ::: annotated address      annotation = {LABEL|surface text}
+# Text outside braces is separators / introducer words, all labelled O.
+#
+# Deliberate spelling variants and typos (so the validator can still catch accidents):
+#variants: dhakka, dacca, chittagong, comilla
+
+# ---- formal, urban Dhaka
+formal ::: {HOUSE|House 45}, {ROAD|Road 11}, {BLOCK|Block B}, {AREA|Banani}, {DISTRICT|Dhaka}-{POSTCODE|1213}
+formal ::: {HOUSE|Flat 5B}, {HOUSE|House 23}, {ROAD|Road 7}, {AREA|Dhanmondi R/A}, {DISTRICT|Dhaka} {POSTCODE|1205}
+formal ::: {HOUSE|House 12}, {ROAD|Road 4}, {AREA|Mohakhali DOHS}, {DISTRICT|Dhaka}-{POSTCODE|1206}
+formal ::: {HOUSE|Plot 31}, {ROAD|Road 14}, {BLOCK|Block K}, {AREA|Bashundhara R/A}, {DISTRICT|Dhaka}-{POSTCODE|1229}
+formal ::: {HOUSE|Holding 87}, {AREA|Tejgaon Industrial Area}, {DISTRICT|Dhaka}-{POSTCODE|1208}
+formal ::: {HOUSE|House 9}, {ROAD|Road 2}, {AREA|Lalmatia}, {DISTRICT|Dhaka} {POSTCODE|1207}
+formal ::: {HOUSE|Apartment 7C}, {HOUSE|House 56}, {ROAD|Road 27}, {AREA|Gulshan-1}, {DISTRICT|Dhaka}-{POSTCODE|1212}
+formal ::: {HOUSE|House 33}, {ROAD|Road 6}, {AREA|Pallabi}, {AREA|Mirpur-12}, {DISTRICT|Dhaka}-{POSTCODE|1216}
+formal ::: {HOUSE|House 66}, {ROAD|Road 12}, {AREA|Banani}, Dist: {DISTRICT|Dhaka}, Bangladesh
+formal ::: {HOUSE|House 25}, {ROAD|Road 4}, {AREA|Baridhara}, {DISTRICT|Dhaka}-{POSTCODE|1212}, Bangladesh
+
+# ---- abbreviations and keyword spellings the generator never emits
+abbrev ::: {HOUSE|H-18}, {ROAD|R-3}, {AREA|Mirpur-2}, {DISTRICT|Dhaka} {POSTCODE|1216}
+abbrev ::: {HOUSE|H#7}, {ROAD|Rd#12}, {AREA|Uttara}, {DISTRICT|Dhaka}-{POSTCODE|1230}
+abbrev ::: {HOUSE|Hse 22}, {ROAD|Rd 8}, {BLOCK|Blk C}, {AREA|Mirpur-1}, {DISTRICT|Dhaka}
+abbrev ::: {HOUSE|H.No-14}, {ROAD|Road No-3}, {AREA|Kalabagan}, {DISTRICT|Dhaka}
+abbrev ::: {HOUSE|House No. 61}, {ROAD|Road No. 9}, {AREA|Shyamoli}, {DISTRICT|Dhaka}-{POSTCODE|1207}
+abbrev ::: {HOUSE|Flat 4A}, {BLOCK|Section 6}, {AREA|Mirpur}, {DISTRICT|Dhaka}
+
+# ---- numbered areas (decision D9)
+numbered ::: {AREA|Mirpur-10}, {DISTRICT|Dhaka}-{POSTCODE|1216}
+numbered ::: {HOUSE|House 20}, {ROAD|Road 4}, {AREA|Mirpur 11}, {DISTRICT|Dhaka}
+numbered ::: {AREA|Dhanmondi 15}, {DISTRICT|Dhaka}-{POSTCODE|1209}
+numbered ::: {HOUSE|House 3}, {AREA|Uttara}, {BLOCK|Sector 10}, {DISTRICT|Dhaka}-{POSTCODE|1230}
+numbered ::: {AREA|Mirpur-6}, {AREA|Pallabi}, {DISTRICT|Dhaka}
+numbered ::: {AREA|Gulshan - 2}, {DISTRICT|Dhaka} - {POSTCODE|1212}
+
+# ---- landmarks
+landmark ::: {HOUSE|House 10}, {ROAD|Road 5}, {AREA|Dhanmondi}, {LANDMARK|near Dhanmondi Lake}, {DISTRICT|Dhaka}
+landmark ::: {HOUSE|House 44}, {AREA|Banani}, {LANDMARK|opposite Banani Graveyard}, {DISTRICT|Dhaka}
+landmark ::: {HOUSE|Flat 6D}, {ROAD|Road 3}, {AREA|Mohammadpur}, {LANDMARK|beside Town Hall Market}, {DISTRICT|Dhaka}-{POSTCODE|1207}
+landmark ::: {HOUSE|House 8}, {AREA|Khulshi}, {LANDMARK|behind Chittagong Medical College}, {DISTRICT|Chattogram}-{POSTCODE|4225}
+landmark ::: {LANDMARK|near Mirpur-10 Metro Rail Station}, {AREA|Mirpur}, {DISTRICT|Dhaka}
+
+# ---- other cities
+city ::: {HOUSE|House 15}, {ROAD|Road 2}, {AREA|Khulshi}, {DISTRICT|Chattogram} {POSTCODE|4225}
+city ::: {HOUSE|Plot 7}, {ROAD|Lane 3}, {AREA|Agrabad C/A}, {DISTRICT|Chattogram}-{POSTCODE|4100}
+city ::: {HOUSE|Holding 22}, {AREA|Halishahar}, {DISTRICT|Chattogram}
+city ::: {HOUSE|House 5}, {ROAD|Road 1}, {AREA|Upashahar}, {DISTRICT|Sylhet}-{POSTCODE|3100}
+city ::: {HOUSE|House 29}, {AREA|Zindabazar}, {DISTRICT|Sylhet} {POSTCODE|3100}, {DIVISION|Sylhet}
+city ::: {HOUSE|House 3}, {ROAD|Road 6}, {AREA|Sonadanga}, {DISTRICT|Khulna}-{POSTCODE|9100}
+city ::: {HOUSE|House 61}, {AREA|Shaheb Bazar}, {DISTRICT|Rajshahi}-{POSTCODE|6000}
+city ::: {HOUSE|House 14}, {ROAD|Road 3}, {AREA|Nasirabad}, {DISTRICT|Chattogram}
+city ::: {HOUSE|House 17}, {AREA|Kajir Dewri}, {DISTRICT|Chattogram}
+city ::: {HOUSE|House 22}, {AREA|Rupatoli}, {DISTRICT|Barishal} {POSTCODE|8200}
+
+# ---- village and form-style addresses with introducer keywords
+village ::: Vill: {AREA|Rampur}, P.O: {AREA|Kalikapur}, Thana: {UPAZILA|Savar}, Dist: {DISTRICT|Dhaka}
+village ::: Village: {AREA|Kashipur}, Post: {AREA|Eliotganj}, Upazila: {UPAZILA|Daudkandi}, District: {DISTRICT|Cumilla}
+village ::: Gram: {AREA|Noapara}, Post: {AREA|Jhikargachha}, Upazila: {UPAZILA|Jhikargachha}, Zila: {DISTRICT|Jashore}
+village ::: Vill- {AREA|Bahadurpur}, P.O- {AREA|Mithapukur}, P.S- {UPAZILA|Mithapukur}, Dist- {DISTRICT|Rangpur}
+village ::: {AREA|Kamalnagar}, {UPAZILA|Trishal}, {DISTRICT|Mymensingh}-{POSTCODE|2220}
+village ::: {AREA|Dhulauri}, {UPAZILA|Savar}, {DISTRICT|Dhaka}
+village ::: {AREA|Joydebpur}, {UPAZILA|Gazipur Sadar}, {DISTRICT|Gazipur}-{POSTCODE|1700}
+village ::: {AREA|Fatullah}, {UPAZILA|Narayanganj Sadar}, {DISTRICT|Narayanganj} {POSTCODE|1420}
+village ::: {AREA|Kalihati Bazar}, {UPAZILA|Kalihati}, {DISTRICT|Tangail}-{POSTCODE|1970}
+village ::: {AREA|Boalia}, {UPAZILA|Paba}, {DISTRICT|Rajshahi}
+village ::: {AREA|Chalna Bazar}, {UPAZILA|Dacope}, {DISTRICT|Khulna}
+village ::: {HOUSE|House 4}, {AREA|Ashulia}, Upazila: {UPAZILA|Savar}, {DISTRICT|Dhaka}-{POSTCODE|1341}
+
+# ---- Bangla script
+bangla ::: {HOUSE|বাসা ১২}, {ROAD|রোড ৫}, {AREA|ধানমন্ডি}, {DISTRICT|ঢাকা}-{POSTCODE|১২০৫}
+bangla ::: {HOUSE|বাড়ি নং ৪৫}, {ROAD|রোড নং ১১}, {BLOCK|ব্লক বি}, {AREA|বনানী}, {DISTRICT|ঢাকা}-{POSTCODE|১২১৩}
+bangla ::: {AREA|মিরপুর-১০}, {DISTRICT|ঢাকা}
+bangla ::: {HOUSE|বাসা ২৩}, {AREA|মোহাম্মদপুর}, {DISTRICT|ঢাকা}, {POSTCODE|১২০৭}
+bangla ::: গ্রাম: {AREA|রামপুর}, ডাকঘর: {AREA|কালিকাপুর}, থানা: {UPAZILA|সাভার}, জেলা: {DISTRICT|ঢাকা}
+bangla ::: {AREA|আগ্রাবাদ}, {DISTRICT|চট্টগ্রাম}-{POSTCODE|৪১০০}
+bangla ::: {HOUSE|বাসা ৭}, {ROAD|রোড ৩}, {AREA|উপশহর}, {DISTRICT|সিলেট}, {DIVISION|সিলেট}
+bangla ::: {LANDMARK|জাতীয় সংসদ ভবনের পাশে}, {AREA|শেরেবাংলা নগর}, {DISTRICT|ঢাকা}
+
+# ---- mixed Bangla and English
+mixed ::: {HOUSE|House 31}, {ROAD|Road 8}, {AREA|বসুন্ধরা আ/এ}, {DISTRICT|Dhaka}-{POSTCODE|1229}
+mixed ::: {HOUSE|বাসা 14}, {ROAD|Road 6}, {AREA|Uttara}, {DISTRICT|ঢাকা}
+mixed ::: {HOUSE|Flat 8B}, {AREA|মিরপুর ১২}, {DISTRICT|Dhaka}
+
+# ---- reversed order and no punctuation
+reversed ::: {DISTRICT|Dhaka} {POSTCODE|1207}, {ROAD|Road 5}, {HOUSE|House 12}, {AREA|Dhanmondi}
+reversed ::: {POSTCODE|1212}, {DISTRICT|Dhaka}, {AREA|Gulshan-2}, {ROAD|Road 90}, {HOUSE|House 11}
+reversed ::: {DISTRICT|Sylhet}-{POSTCODE|3100}, {AREA|Upashahar}, {ROAD|Road 3}, {HOUSE|House 9}
+nopunct ::: {AREA|Mirpur-10} {DISTRICT|Dhaka}
+nopunct ::: {HOUSE|house 12} {ROAD|road 3} {AREA|dhanmondi} {DISTRICT|dhaka} {POSTCODE|1209}
+
+# ---- lowercase, typos and spelling variants
+lower ::: {HOUSE|flat 4b}, {ROAD|rd 9}, {AREA|uttara}, {DISTRICT|dhaka}-{POSTCODE|1230}
+typo ::: {HOUSE|House 21}, {ROAD|Road 4}, {AREA|Dhanmondy}, {DISTRICT|Dhakka}-{POSTCODE|1205}
+typo ::: {HOUSE|House 7}, {ROAD|Road 2}, {AREA|Mohammadpure}, {DISTRICT|Dacca}
+variant ::: {AREA|Agrabad}, {DISTRICT|Chittagong}-{POSTCODE|4100}
+variant ::: {HOUSE|House 18}, {AREA|Kandirpar}, {DISTRICT|Comilla}-{POSTCODE|3500}
