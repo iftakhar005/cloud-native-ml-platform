@@ -119,6 +119,13 @@ class Baseline:
             if is_area_word:
                 group.append(token)
             elif group:
-                spans.append(Span(group[0].start, group[-1].end, "AREA"))
+                end = group[-1].end
+                # Decision D9: "Mirpur-10" / "Mirpur 10" - a 1-2 digit number
+                # right after the name (optionally after a hyphen) is part of it.
+                j = i + 1 if token is not None and token.text == "-" else i
+                if (j < len(tokens) and not covered[j] and tokens[j].text.isdigit()
+                        and len(tokens[j].text) <= 2):
+                    end = tokens[j].end
+                spans.append(Span(group[0].start, end, "AREA"))
                 group = []
         return sorted(spans, key=lambda s: s.start)

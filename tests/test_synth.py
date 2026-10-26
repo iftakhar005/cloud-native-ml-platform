@@ -5,6 +5,7 @@ import pytest
 
 from thikana.schema import ENTITY_TYPES
 from thikana.text import bio_to_spans, normalize_digits, tokenize, to_bio
+from thikana.training.audit_labels import hyphen_number_report
 from thikana.training.synth import URBAN_AREAS, build_places, generate, split_places
 
 
@@ -80,7 +81,7 @@ def test_decision_d8_only_administrative_names_are_labelled_upazila(splits, plac
     # are UPAZILA. A neighbourhood name may still be UPAZILA when it genuinely
     # is one elsewhere ("Mohammadpur" is also an upazila of Magura).
     urban = {n.lower() for en, bn, _ in URBAN_AREAS for n in (en, bn)}
-    admin = {p.upazila.lower() for p in places if p.upazila_admin}
+    admin = {n.lower() for p in places if p.upazila_admin for n in (p.upazila, p.upazila_bn)}
     for example in generate(splits["train"], 3000, seed=1):
         for surface in example.surface("UPAZILA"):
             if surface.lower() in urban:
@@ -92,6 +93,44 @@ def test_decision_d8_only_administrative_names_are_labelled_upazila(splits, plac
 def test_non_administrative_postcode_upazilas_are_flagged(places):
     flagged = [p for p in places if not p.upazila_admin]
     assert 0 < len(flagged) < len(places)
+
+
+def test_decision_d9_numbered_areas_are_one_area_span_including_the_number(splits):
+    areas = [normalize_digits(s) for e in generate(splits["train"], 3000, seed=1)
+             for s in e.surface("AREA")]
+    numbered = [a for a in areas if re.fullmatch(r"(mirpur|dhanmondi|gulshan)\s*-?\s*\d{1,2}", a, re.I)]
+    assert len(numbered) > 50
+    assert all(re.search(r"\d", a) for a in numbered)  # the number is INSIDE the span
+
+
+def test_some_rural_names_are_numbered_so_the_rule_is_structural_not_lexical(splits):
+    areas = [normalize_digits(s) for e in generate(splits["train"], 3000, seed=1)
+             for s in e.surface("AREA")]
+    odd = [a for a in areas if re.search(r"[-\s]\d{1,2}$", a)
+           and not re.match(r"(mirpur|dhanmondi|gulshan)", a, re.I)]
+    assert len(odd) > 10
+
+
+def test_four_digits_are_always_a_postcode_after_a_name_only_when_they_really_are(splits):
+    examples = generate(splits["train"], 3000, seed=1)
+    # a postcode is exactly 4 digits ...
+    for e in examples:
+        for s in e.surface("POSTCODE"):
+            assert re.fullmatch(r"\d{4}", normalize_digits(s))
+    # ... but 4 digits are not always a postcode: keyword-led holding numbers exist
+    holdings = [normalize_digits(s) for e in examples for s in e.surface("HOUSE")
+                if re.search(r"\d{4}", normalize_digits(s))]
+    assert holdings
+    assert not any(re.fullmatch(r"\d{4}(/\d+)?", h) for h in holdings)  # never bare
+
+
+def test_a_place_name_hyphen_number_is_not_always_a_postcode(splits):
+    # The shortcut the model learned: measured at 100% of 1,511 cases before D9.
+    table = hyphen_number_report(generate(splits["train"], 3000, seed=1))
+    short = table[("AREA", "1-2 digits")]
+    assert sum(short.values()) > 50
+    assert short["POSTCODE"] == 0  # a 1-2 digit number can never be a postcode
+    assert table[("DISTRICT", "4 digits")]["POSTCODE"] > 0  # while 4 digits still can be
 
 
 def test_excluded_strings_never_reappear(splits):

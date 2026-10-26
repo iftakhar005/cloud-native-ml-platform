@@ -86,14 +86,11 @@ string carried two labels. Note a name can still legitimately be both:
 
 ## Open questions raised by the brittleness probes (NOT yet decisions)
 
+(D9 from this list was accepted; see "Decision added during Task 4" below.)
+
 Hand-written probe addresses (thikana/training/probe.py) showed the model
 forcing real-world constructs into the nearest label. These need a schema
 decision before more training data is generated:
-
-**D9 - Numbered areas.** "Mirpur-10", "Dhanmondi 27", "Uttara Sector 7".
-Proposed: the number is PART of the AREA name, so "Mirpur-10" is one AREA
-span. Currently the generator never produces these, and the model labelled the
-"10" in "Mirpur-10" as a POSTCODE.
 
 **D10 - Constructs with no label.** "Level 3", "Ward 5", "Shop 12", "Union
 Parishad Office". Options: (a) add labels, (b) map to existing ones (Shop -> HOUSE,
@@ -107,3 +104,47 @@ dropped. Needs your call.
 - v1 minus baseline: +0.104, 95% interval [+0.090, +0.118].
 - v2 minus v1: +0.003, 95% interval [-0.002, +0.008] -> NOT distinguishable
   from zero; v1 kept (simpler, no extra artifact).
+
+## Decision added during Task 4
+
+**D9 - Numbered area names are ONE AREA span (accepted 2026-10-26).** A number
+attached directly to an area name, with a hyphen, a spaced hyphen, or a space,
+belongs to the name: `Mirpur-10`, `Mirpur 10`, `Mirpur - 10`, `Dhanmondi 27`,
+`Gulshan-2`, `মিরপুর-১০`. The span includes the hyphen and the number, so the
+tokens `Mirpur` `-` `10` are tagged B-AREA I-AREA I-AREA.
+
+Boundary (my reading, confirm if wrong): keyword-introduced units stay BLOCK.
+`Uttara Sector 7` is AREA `Uttara` plus BLOCK `Sector 7`, because BLOCK already
+covers "Sector 10". An earlier draft of this note listed `Uttara Sector 7`
+under D9; that was inconsistent with BLOCK and is corrected here.
+
+Why it matters: in the original synthetic data a place name followed by a
+hyphen and digits was a POSTCODE in 100% of 1,511 cases (measured), and the
+model learned that as a rule, labelling the 2-digit "10" in "Mirpur-10" a
+POSTCODE. A POSTCODE is always exactly 4 digits.
+
+## D9 measured effect (synthetic data only; 2026-10-26)
+
+Shortcut in the data, before vs after (number directly after "X-" where X is
+a place name, training split): POSTCODE in 100% of 1,511 cases -> 87.0% of
+1,740 cases. After a name, 4 digits are always POSTCODE (1,514) and 1-2 digits
+are always AREA (226); keyword-led 4-digit holding numbers are HOUSE (19).
+
+Controlled comparison on the SAME new dev set (600 addresses, 46 containing a
+numbered area, so the slice is small and its uncertainty wide):
+
+| | CRF v1 trained before D9 | CRF v1 retrained with D9 data | rule baseline (+D9 rule) |
+|---|---|---|---|
+| micro F1, all dev | 0.955 | 0.981 | 0.886 |
+| micro F1, numbered-area slice | 0.730 | 0.975 | 0.931 |
+| POSTCODE spans not 4 chars long | 9 | 0 | 0 |
+
+Scored hand-written probes (thikana/training/probe.py; my annotations from
+this schema, NOT a test set): 3 of 13 before, 12 of 13 after. The one failure
+is a lone trailing "Dhaka" labelled DIVISION (decision D1), unrelated to D9.
+
+Method note: the "before" model was trained on the generator as of commit
+5cc0434; reproduce it by checking that commit out and running train.py.
+Caution: dev sets differ between generator versions, so only same-dev
+comparisons like the table above are valid; overall dev F1 fell 0.985 -> 0.981
+across retrains because the benchmark got harder, not the model worse.

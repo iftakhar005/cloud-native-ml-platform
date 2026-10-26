@@ -42,6 +42,17 @@ LANDMARKS = [
 ]
 LANDMARK_WORDS = ("near", "beside", "opposite", "behind")
 
+# Hand-written, NOT authoritative: area names that carry a number, with the
+# highest number used (decision D9). Mirpur has sections 1-14, Dhanmondi 1-32,
+# Gulshan 1-2.
+NUMBERED_AREAS = {"Mirpur": 14, "Dhanmondi": 32, "Gulshan": 2}
+
+# A deliberate augmentation, NOT observed data: a few rural post-office names
+# also get a number. Without it the model could learn the shortcut "Mirpur /
+# Dhanmondi / Gulshan + digits" instead of the structure "a name followed by a
+# 1-2 digit number is part of the name".
+RURAL_NUMBERED_RATE = 0.04
+
 # Spellings people really write that differ from the gazetteer's.
 SPELLING_VARIANTS = {
     "Chattogram": ["Chittagong", "Chattagram"], "Cumilla": ["Comilla"],
@@ -134,11 +145,22 @@ def _digits(text: str, bangla: bool, rng: random.Random) -> str:
 
 
 def _house(rng, bn):
-    n, m = rng.randint(1, 150), rng.randint(1, 12)
+    # Real holding numbers can have 4 digits. Keep those keyword-led so they
+    # are not confused with a postcode; otherwise "4 digits" becomes a shortcut.
+    big = rng.random() < 0.06
+    n = rng.randint(1000, 2999) if big else rng.randint(1, 150)
+    m = rng.randint(1, 12)
     forms = ([f"বাসা {n}", f"বাড়ি {n}", f"বাসা নং {n}", f"{n}/{m}"] if bn else
              [f"House {n}", f"House-{n}", f"H#{n}", f"H-{n}", f"Holding {n}", f"{n}",
               f"{n}/{m}", f"Flat {n}{rng.choice('ABCD')}"])
+    if big:
+        forms = [f for f in forms if not f[0].isdigit()]
     return _digits(rng.choice(forms), bn, rng)
+
+
+def _numbered(surface: str, number: int, bangla: bool, rng: random.Random) -> str:
+    """'Mirpur' -> 'Mirpur-10' / 'Mirpur 10' / 'Mirpur - 10' (D9: one AREA span)."""
+    return surface + rng.choice(("-", "-", " ", " - ")) + _digits(str(number), bangla, rng)
 
 
 def _road(rng, bn):
@@ -189,7 +211,14 @@ def _one(rng, places, by_district, urban_pool) -> Example:
         landmark = [(_landmark(rng, _pick_script(mode, rng)), "LANDMARK")]
         chunks.insert(rng.randint(0, len(chunks)), landmark)
 
-    area_chunk = [(name(area_en, area_bn), "AREA")]
+    use_bn = area_bn is not None and _pick_script(mode, rng)
+    area = area_bn if use_bn else _latin(area_en, rng)
+    top = NUMBERED_AREAS.get(area_en) if urban else None
+    if top and rng.random() < 0.6:  # decision D9
+        area = _numbered(area, rng.randint(1, top), use_bn, rng)
+    elif not urban and rng.random() < RURAL_NUMBERED_RATE:
+        area = _numbered(area, rng.randint(1, 9), False, rng)
+    area_chunk = [(area, "AREA")]
     if not urban and rng.random() < 0.10:
         area_chunk.insert(0, ("P.O: ", None))
     if rng.random() < 0.92:  # real addresses sometimes have no area at all

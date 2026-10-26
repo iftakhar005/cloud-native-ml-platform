@@ -10,10 +10,44 @@ from __future__ import annotations
 import sys
 from collections import Counter, defaultdict
 
-from thikana.text import normalize_digits
+from thikana.text import normalize_digits, tokenize, to_bio
 from thikana.training.synth import build_datasets
 
 NAME_LABELS = ("AREA", "UPAZILA", "DISTRICT", "DIVISION")
+
+
+def hyphen_number_report(examples) -> dict:
+    """What label does a number get when it directly follows a hyphen?
+
+    Broken down by the label of the token BEFORE the hyphen and the number's
+    digit count. If "a name, a hyphen, then digits" is always a postcode in the
+    training data, the model learns that as a rule (it did: "Mirpur-10").
+    """
+    table: dict[tuple[str, str], Counter] = defaultdict(Counter)
+    for example in examples:
+        tokens = tokenize(normalize_digits(example.text))
+        tags = to_bio(tokens, example.spans)
+        for i in range(2, len(tokens)):
+            if tokens[i - 1].text == "-" and tokens[i].text.isdigit():
+                n = len(tokens[i].text)
+                bucket = "1-2 digits" if n <= 2 else "4 digits" if n == 4 else "3 or 5+ digits"
+                table[(tags[i - 2][2:] or "O", bucket)][tags[i][2:] or "O"] += 1
+    return table
+
+
+def print_hyphen_report(examples) -> None:
+    table = hyphen_number_report(examples)
+    print("\nnumber right after 'X-': label of X, digit count -> labels the number received")
+    for (before, bucket), counter in sorted(table.items(), key=lambda kv: -sum(kv[1].values())):
+        total = sum(counter.values())
+        shares = ", ".join(f"{label} {n / total:.0%}" for label, n in counter.most_common())
+        print(f"  X={before:9s} {bucket:15s} n={total:5d}  {shares}")
+    names = [c for (before, _), c in table.items() if before in ("AREA", "DISTRICT", "UPAZILA")]
+    total = sum(sum(c.values()) for c in names)
+    postcode = sum(c["POSTCODE"] for c in names)
+    if total:
+        print(f"when X is a place name: the number is a POSTCODE in {postcode / total:.1%} "
+              f"of {total} cases")
 
 
 def label_sets(examples) -> dict[str, Counter]:
@@ -52,6 +86,8 @@ def main() -> None:
     top = sorted(ambiguous.items(), key=lambda kv: -sum(kv[1].values()))[:10]
     for surface, counter in top:
         print(f"  {surface!r:22s} {dict(counter)}")
+
+    print_hyphen_report(data["train"])
 
 
 if __name__ == "__main__":

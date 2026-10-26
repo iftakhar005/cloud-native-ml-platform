@@ -43,6 +43,17 @@ def test_decision_d8_baseline_does_not_treat_a_dhaka_thana_as_an_upazila(baselin
     assert "UPAZILA" not in baseline.names.get(("gulshan",), set())
 
 
+def test_decision_d9_baseline_absorbs_a_short_number_into_the_area(baseline):
+    assert labelled(baseline, "Mazara-5, Dhaka 1212") == {
+        "Mazara-5": "AREA", "Dhaka": "DISTRICT", "1212": "POSTCODE"}
+    assert labelled(baseline, "Mazara 5, Dhaka")["Mazara 5"] == "AREA"
+
+
+def test_decision_d9_baseline_does_not_absorb_a_four_digit_postcode(baseline):
+    got = labelled(baseline, "Mazara 1212")
+    assert got == {"Mazara": "AREA", "1212": "POSTCODE"}
+
+
 def test_known_weakness_a_misspelled_district_is_mistaken_for_an_area(baseline):
     # Characterisation test: documents what the baseline gets WRONG, so a model
     # that fixes it is a measured improvement and not a claim.

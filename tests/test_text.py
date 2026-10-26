@@ -43,6 +43,16 @@ def test_spans_survive_a_round_trip_through_bio():
     assert bio_to_spans(tokens, to_bio(tokens, spans)) == spans
 
 
+def test_decision_d9_a_numbered_area_is_one_span_including_hyphen_and_number():
+    text = "Mirpur-10, Dhaka-1216"
+    spans = [span_of(text, "Mirpur-10", "AREA"), span_of(text, "Dhaka", "DISTRICT"),
+             span_of(text, "1216", "POSTCODE")]
+    # Mirpur - 10 , Dhaka - 1216: the hyphen inside the area is part of it,
+    # the hyphen before the postcode is not.
+    assert to_bio(tokenize(text), spans) == [
+        "B-AREA", "I-AREA", "I-AREA", "O", "B-DISTRICT", "O", "B-POSTCODE"]
+
+
 def test_a_token_straddling_a_span_boundary_is_an_error():
     text = "Block C12"
     with pytest.raises(ValueError, match="straddles"):
