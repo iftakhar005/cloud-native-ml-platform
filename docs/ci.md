@@ -133,16 +133,19 @@ scan is a snapshot: a new CVE next week is invisible to this run.
 - `tests/test_ci_workflow.py` (19 tests) guards pins, permissions, step order and the
   publish conditions; nine different deliberate breakages each made it fail.
 
-**Not verified, because it cannot be done outside GitHub:**
+**Verified on GitHub:** the first run, on the pull request, finished with both jobs green
+(reported by the project owner from the Checks tab; the log was not shared with me, so
+this file does not quote timings or counts from it). That covers the real actions
+(`checkout`, `setup-python`, `upload/download-artifact`), the pip cache, the quality gate
+and the image build, smoke test and Trivy gate on a hosted runner.
 
-- **The workflow has never run on GitHub.** Nothing has been pushed. Expect a first-run
-  surprise or two.
-- The real actions (`checkout`, `setup-python`, `upload/download-artifact`) and the pip
-  cache.
-- `docker login ghcr.io` and `docker push` with the real `GITHUB_TOKEN`, and the package
-  permission behaviour.
-- The `gate` step was run on this machine against both models, not inside the container
-  that ran the other `verify` steps (it was written after that run).
+**Not verified yet:**
+
+- **The publish path.** A pull request skips "Publish to GHCR" by design, so
+  `docker login ghcr.io`, `docker push` with the real `GITHUB_TOKEN`, and the package
+  permission behaviour have not run. They run for the first time on a push to `main`.
+- Whether the Trivy numbers on the runner equal the local ones above. The vulnerability
+  database changes daily, so they may differ; read the run's summary table.
 
 ## What it does not do
 
@@ -155,7 +158,7 @@ scan is a snapshot: a new CVE next week is invisible to this run.
 - It scans for known vulnerabilities only. It says nothing about whether the model is
   right.
 
-## First run: what to do
+## First run: what to do (steps 1 and 2 are done)
 
 1. Push the branch and open a pull request into `main`. The `verify` and `image` jobs run;
    nothing is published.
