@@ -1,0 +1,111 @@
+# HAND-WRITTEN evaluation set v3. NOT REAL ADDRESSES. Written by an AI assistant AFTER the
+# three fixes (upazila-first, lone district, NFC) and the final retrain, BEFORE any model
+# saw it. Labels follow docs/label-schema.md (D1-D11).
+#
+# Style tags:  T-*  TARGETED  new instances of THIS round's fixes
+#              R-*  REGRESSION GUARD  new instances of the groups fixed LAST round
+#              F-*  FRESH     constructs deliberately NOT trained for
+# Scored once; never used to tune. See README.md here.
+#
+# Format:  style ::: annotated address      annotation = {LABEL|surface text}
+# A literal \n is a line break. Text outside braces is O (separators, introducer words,
+# Shop / Level lines, brackets, "Bangladesh").
+#
+#variants: ctg, dhk
+
+# ---- T-upazila: an upazila with NO area before it (and decision D11)
+T-upazila ::: {UPAZILA|Keraniganj}, {DISTRICT|Dhaka}
+T-upazila ::: {UPAZILA|Gazipur Sadar}, {DISTRICT|Gazipur}-{POSTCODE|1700}
+T-upazila ::: {UPAZILA|Tongi}, {DISTRICT|Gazipur}
+T-upazila ::: {HOUSE|House 14}, {UPAZILA|Savar}, {DISTRICT|Dhaka}
+T-upazila ::: {UPAZILA|Sonargaon}, {DISTRICT|Narayanganj}, {DIVISION|Dhaka}
+T-upazila ::: {UPAZILA|Bhaluka}, {DISTRICT|Mymensingh}
+T-upazila ::: {UPAZILA|Hathazari}, {DISTRICT|Chattogram}-{POSTCODE|4330}
+T-upazila ::: {UPAZILA|Rupsa}, {DISTRICT|Khulna} {POSTCODE|9100}
+T-upazila ::: {UPAZILA|সাভার}, {DISTRICT|ঢাকা}-{POSTCODE|১৩৪০}
+T-upazila ::: {LANDMARK|near Tongi Bazar}, {UPAZILA|Tongi}, {DISTRICT|Gazipur}
+T-upazila ::: {UPAZILA|Dohar}, {DISTRICT|Dhaka} - {POSTCODE|1330}
+T-upazila ::: {AREA|Savar}, {UPAZILA|Savar}, {DISTRICT|Dhaka}
+T-upazila ::: P.O: {AREA|Savar}, {DISTRICT|Dhaka}
+
+# ---- T-d1: a lone district after a house / road / landmark; district + division with different names
+T-d1 ::: {HOUSE|House 3}, {LANDMARK|near Boalia Bazar}, {DISTRICT|Rajshahi}
+T-d1 ::: {ROAD|Road 4}, {BLOCK|Block B}, {DISTRICT|Dhaka}
+T-d1 ::: {HOUSE|House 22}, {ROAD|Road 6}, {DISTRICT|Sylhet}
+T-d1 ::: {LANDMARK|opposite Khulna Medical College}, {DISTRICT|Khulna}
+T-d1 ::: {AREA|Dumuria Bazar}, {DISTRICT|Satkhira}, {DIVISION|Khulna}
+T-d1 ::: {UPAZILA|Natore Sadar}, {DISTRICT|Natore}, {DIVISION|Rajshahi}
+T-d1 ::: {HOUSE|House 8}, {DISTRICT|Cumilla}-{POSTCODE|3500}, {DIVISION|Chattogram}
+T-d1 ::: {DISTRICT|Gazipur} {POSTCODE|1700}, {DIVISION|Dhaka}
+T-d1 ::: {AREA|Bhairab Bazar}, {DISTRICT|Kishoreganj}, {DIVISION|Dhaka}
+T-d1 ::: {ROAD|Road 2}, {AREA|Kazipara}, {DISTRICT|Dhaka}, {DIVISION|Dhaka}
+T-d1 ::: {AREA|ভৈরব বাজার}, {DISTRICT|কিশোরগঞ্জ}, {DIVISION|ঢাকা}
+T-d1 ::: {HOUSE|বাসা ৯}, {DISTRICT|সিলেট}
+
+# ---- R-: regression guards for the groups fixed last round (new instances)
+R-keyword ::: {HOUSE|Hse 17}, {ROAD|Street 3}, {BLOCK|Phase 2}, {AREA|Uttara}, {DISTRICT|Dhaka}
+R-keyword ::: {HOUSE|প্লট ৯}, {ROAD|রোড নং ৭}, {AREA|মিরপুর}, {DISTRICT|ঢাকা}
+R-village ::: Vill: {AREA|Basudebpur}, P.O: {AREA|Gopalganj Bazar}, P.S: {UPAZILA|Tungipara}, Dist: {DISTRICT|Gopalganj}
+R-village ::: Village- {AREA|Kashimpur}, Thana- {UPAZILA|Keraniganj}, District- {DISTRICT|Dhaka}
+R-landmark ::: {HOUSE|House 6}, {AREA|Khilgaon}, {LANDMARK|behind Khilgaon School}, {DISTRICT|Dhaka}
+R-order ::: {DISTRICT|Dhaka}-{POSTCODE|1217}, {AREA|Malibagh}, {ROAD|Road 3}, {HOUSE|House 20}
+R-d10 ::: Shop 8, {AREA|Mirpur-1}, {DISTRICT|Dhaka}
+R-d10 ::: {AREA|Ward 2}, {UPAZILA|Keraniganj}, {DISTRICT|Dhaka}
+
+# ---- F-punct: layout the generator never produces (known to be unfixed)
+F-punct ::: {HOUSE|House 31} / {ROAD|Road 6} / {AREA|Gulshan-2} / {DISTRICT|Dhaka}
+F-punct ::: {HOUSE|Flat 4A} | {AREA|Uttara} | {DISTRICT|Dhaka}
+F-punct ::: ({HOUSE|House 9}) {ROAD|Road 3}, {AREA|Banani}, {DISTRICT|Dhaka}
+F-punct ::: {HOUSE|House 12}\n{AREA|Mirpur-1}\n{DISTRICT|Dhaka}
+F-punct ::: {HOUSE|House: 7}, {AREA|Dhanmondi}, {DISTRICT|Dhaka}
+
+# ---- F-postcode: introducer words before a postcode (decision D7), never generated
+F-postcode ::: {HOUSE|House 5}, {AREA|Banani}, {DISTRICT|Dhaka}, Postcode: {POSTCODE|1213}
+F-postcode ::: {AREA|Uttara}, {DISTRICT|Dhaka}, Post Code- {POSTCODE|1230}
+F-postcode ::: {AREA|Gulshan-1}, {DISTRICT|Dhaka}, ZIP {POSTCODE|1212}
+F-postcode ::: {AREA|ধানমন্ডি}, {DISTRICT|ঢাকা}, পোস্টকোড: {POSTCODE|১২০৫}
+
+# ---- F-typo: typos INSIDE the keywords
+F-typo ::: {HOUSE|Hosue 12}, {ROAD|Raod 4}, {AREA|Banani}, {DISTRICT|Dhaka}
+F-typo ::: {HOUSE|House 8}, {ROAD|Road 2}, {BLOCK|Blok C}, {AREA|Uttara}, {DISTRICT|Dhaka}
+F-typo ::: {HOUSE|Hause 4}, {AREA|Mirpur-2}, {DISTRICT|Dhaka}
+
+# ---- F-number: number formats
+F-number ::: {HOUSE|House 12-14}, {ROAD|Road 5/A}, {AREA|Banani}, {DISTRICT|Dhaka}
+F-number ::: {HOUSE|Flat 3B/2}, {ROAD|Road 9}, {AREA|Gulshan-1}, {DISTRICT|Dhaka}
+F-number ::: {HOUSE|Holding 12/3}, {ROAD|Road 14}, {AREA|Halishahar}, {DISTRICT|Chattogram}
+
+# ---- F-landmark: a BLOCK-looking token nested inside a landmark
+F-landmark ::: {HOUSE|House 3}, {AREA|Banani}, {LANDMARK|near Banani Sector-3 Mosque}, {DISTRICT|Dhaka}
+F-landmark ::: {AREA|Uttara}, {LANDMARK|beside Mirpur-10 Roundabout}, {DISTRICT|Dhaka}
+
+# ---- F-apostrophe: a district name containing an apostrophe
+F-apostrophe ::: {HOUSE|House 4}, {AREA|Kolatoli}, {DISTRICT|Cox's Bazar}
+F-apostrophe ::: {AREA|Laldighi}, {DISTRICT|Cox's Bazar}-{POSTCODE|4700}
+
+# ---- F-abbrev: informal abbreviations (known to be unfixed)
+F-abbrev ::: {AREA|Khulshi}, {DISTRICT|Ctg}
+F-abbrev ::: {HOUSE|House 3}, {AREA|Mirpur-6}, {DISTRICT|Dhk}-{POSTCODE|1216}
+
+# ---- F-short and F-order
+F-short ::: {AREA|Gulshan-2}
+F-short ::: {DISTRICT|Barishal}
+F-short ::: {ROAD|Road 4}, {DISTRICT|Dhaka}
+F-order ::: {AREA|Mirpur-10}, {DISTRICT|Dhaka}-{POSTCODE|1216}, {ROAD|Road 5}, {HOUSE|House 3}
+F-order ::: {HOUSE|House 3}, {DISTRICT|Dhaka}, {AREA|Banani}, {ROAD|Road 5}
+
+# ---- F-bangla: Bangla keywords the generator has no examples of
+F-bangla ::: {HOUSE|বাড়ি নম্বর ৪}, {ROAD|রাস্তা ৩}, {AREA|উত্তরা}, {DISTRICT|ঢাকা}
+F-bangla ::: {HOUSE|বাসা ৭}, {AREA|মিরপুর-১১}, {DISTRICT|ঢাকা}-{POSTCODE|১২১৬}
+
+# ---- T-unicode: Bangla names typed in NFC (the form a standard keyboard produces).
+# Generated from the gazetteer and passed through NFC; each name was asserted to CHANGE
+# under NFC, so each item exercises the fix. The gazetteer stores the precomposed form.
+T-unicode ::: {UPAZILA|ওয়াজিরপুর}, {DISTRICT|Barishal}
+T-unicode ::: {HOUSE|বাসা ১২}, {UPAZILA|বানাড়িপারা}, {DISTRICT|বরিশাল}
+T-unicode ::: {UPAZILA|পটুয়াখালী সদর}, {DISTRICT|পটুয়াখালী}, {DIVISION|বরিশাল}
+T-unicode ::: {UPAZILA|ত্রিশাল}, {DISTRICT|ময়মনসিংহ}, {DIVISION|ময়মনসিংহ}
+T-unicode ::: গ্রাম: {AREA|কাঁঠালবাড়ি}, থানা: {UPAZILA|কাঁঠালিয়া}, জেলা: {DISTRICT|ঝালকাঠি}
+T-unicode ::: {UPAZILA|নড়িয়া}, {DISTRICT|শরীয়তপুর}
+T-unicode ::: {DISTRICT|রাজবাড়ি}-{POSTCODE|৭৭০০}
+T-unicode ::: {HOUSE|বাড়ি ৫}, {DISTRICT|নারায়াণগঞ্জ}

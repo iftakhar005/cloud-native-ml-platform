@@ -1,0 +1,27 @@
+# ALLOWLIST. Ignore everything, then permit exactly what the image needs.
+#
+# The usual default (permit everything, ignore a few folders) is how a .venv, a
+# .git directory, a .env with a secret, or a file of personal addresses ends up
+# inside an image. With an allowlist, a new file is OUT of the image until someone
+# deliberately lets it in.
+*
+
+# the pinned serving dependencies
+!requirements/serve.txt
+
+# the serving code: only what the API imports. NOT thikana/training (needs pandas)
+!thikana/__init__.py
+!thikana/schema.py
+!thikana/text.py
+!thikana/features.py
+!thikana/model.py
+!thikana/api/
+
+# the production model and its sidecar (vocabulary + feature flags). The models/
+# folder is gitignored, so it must be built first: python -m thikana.training.train_all
+!models/crf_all_district_memory.crfsuite
+!models/crf_all_district_memory.json
+
+# bytecode never ships, even from inside an allowed folder
+**/__pycache__
+**/*.pyc
