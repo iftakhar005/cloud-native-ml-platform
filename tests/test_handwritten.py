@@ -142,3 +142,59 @@ def test_every_v3_gold_span_lands_on_token_boundaries():
         tokens = tokenize(normalize_digits(item.example.text))
         tags = to_bio(tokens, item.example.spans)
         assert bio_to_spans(tokens, tags) == list(item.example.spans), item.example.text
+
+
+# ---- v4: scored once, in the deployment setting (full-data models) ---------
+
+def test_v4_loads_audits_clean_and_has_all_three_groups():
+    items, variants = load(path_for("v4"))
+    assert len(items) >= 60
+    assert audit(items, variants) == []
+    assert {i.style[:2] for i in items} == {"T-", "R-", "F-"}
+    assert {s.label for i in items for s in i.example.spans} == set(ENTITY_TYPES)
+
+
+def test_v4_shares_no_address_with_any_spent_set():
+    earlier = {i.example.text for v in ("v1", "v2", "v3") for i in load(path_for(v))[0]}
+    v4 = {i.example.text for i in load(path_for("v4"))[0]}
+    assert earlier.isdisjoint(v4)
+
+
+def test_v4_novel_names_appear_in_no_gazetteer_file():
+    # F-novel guards against "any leading name is an upazila"; it only works if
+    # the names really are unknown to every reference file
+    f = load_all()
+    nfc = lambda s: unicodedata.normalize("NFC", s.strip()).lower()
+    known = set()
+    for frame, columns in ((f["districts"], ("name", "bn_name")), (f["divisions"], ("name", "bn_name")),
+                           (f["upazilas"], ("name", "bn_name")), (f["postcodes"], ("upazila", "postOffice"))):
+        for column in columns:
+            known |= {nfc(x) for x in frame[column]}
+    items, _ = load(path_for("v4"))
+    novel = [nfc(i.example.text[s.start:s.end]) for i in items if i.style == "F-novel"
+             for s in i.example.spans if s.label == "AREA"]
+    assert len(novel) >= 7
+    assert not [n for n in novel if n in known]
+
+
+def test_v4_vocab_names_were_unseen_by_the_split_trained_models():
+    # T-vocab only measures the full-data effect if the split models never saw these
+    # names as upazilas
+    from thikana.training.synth import build_places, split_places
+
+    nfc = lambda s: unicodedata.normalize("NFC", s.strip()).lower()
+    train = split_places(build_places())["train"]
+    seen = {nfc(n) for p in train if p.upazila_admin for n in (p.upazila, p.upazila_bn) if n}
+    items, _ = load(path_for("v4"))
+    names = [nfc(i.example.text[s.start:s.end]) for i in items if i.style == "T-vocab"
+             for s in i.example.spans if s.label == "UPAZILA"]
+    assert len(names) >= 18
+    assert not [n for n in names if n in seen]
+
+
+def test_every_v4_gold_span_lands_on_token_boundaries():
+    items, _ = load(path_for("v4"))
+    for item in items:
+        tokens = tokenize(normalize_digits(item.example.text))
+        tags = to_bio(tokens, item.example.spans)
+        assert bio_to_spans(tokens, tags) == list(item.example.spans), item.example.text

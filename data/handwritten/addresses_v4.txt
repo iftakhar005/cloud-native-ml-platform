@@ -1,0 +1,99 @@
+# HAND-WRITTEN evaluation set v4. NOT REAL ADDRESSES. Written by an AI assistant AFTER the
+# production models were trained on every gazetteer record and BEFORE any model saw it.
+# Labels follow docs/label-schema.md (D1-D11).
+#
+# Style tags:  T-*  TARGETED  this round's changes
+#                   T-vocab : upazila names the 70%-split models never saw (class A: in a postcode
+#                             record but not in the split; class B: in the upazila table only)
+#                   T-d1    : district memory (a lone district; district + division)
+#              R-*  REGRESSION GUARD  new strings for groups fixed in earlier rounds
+#              F-*  FRESH  deliberately NOT trained for
+#                   F-novel : INVENTED village / neighbourhood names that appear in NO gazetteer
+#                             file, in upazila-like positions. The right answer is AREA. This guards
+#                             against a model that learned "any leading name is an upazila".
+# Scored once; never used to tune. See README.md here.
+#
+# Format:  style ::: annotated address      annotation = {LABEL|surface text}
+# A literal \n is a line break. Text outside braces is O.
+#
+#variants: ctg
+
+# ---- T-vocab, class A: in a postcode record, but NOT in the 70% training split
+T-vocab ::: {UPAZILA|Homna}, {DISTRICT|Cumilla}
+T-vocab ::: {UPAZILA|Nikli}, {DISTRICT|Kishoreganj}-{POSTCODE|2360}
+T-vocab ::: {HOUSE|House 6}, {UPAZILA|Kotalipara}, {DISTRICT|Gopalganj}
+T-vocab ::: {UPAZILA|Kutubdia}, {DISTRICT|Cox's Bazar}
+T-vocab ::: {UPAZILA|Belabo}, {DISTRICT|Narsingdi}, {DIVISION|Dhaka}
+T-vocab ::: {UPAZILA|Tahirpur}, {DISTRICT|Sunamganj} {POSTCODE|3040}
+
+# ---- T-vocab, class B: in the upazila TABLE only (no postcode record at all)
+T-vocab ::: {UPAZILA|Taltali}, {DISTRICT|Barguna}
+T-vocab ::: {UPAZILA|Mehendiganj}, {DISTRICT|Barishal}-{POSTCODE|8200}
+T-vocab ::: {UPAZILA|Char Fasson}, {DISTRICT|Bhola}
+T-vocab ::: {UPAZILA|Manpura}, {DISTRICT|Bhola}, {DIVISION|Barishal}
+T-vocab ::: {UPAZILA|Kalapara}, {DISTRICT|Patuakhali}
+T-vocab ::: {UPAZILA|Ashuganj}, {DISTRICT|Brahmanbaria}-{POSTCODE|3410}
+T-vocab ::: {UPAZILA|Haimchar}, {DISTRICT|Chandpur}
+T-vocab ::: {UPAZILA|Banshkhali}, {DISTRICT|Chattogram}
+T-vocab ::: {UPAZILA|Debidwar}, {DISTRICT|Cumilla}-{POSTCODE|3500}
+T-vocab ::: {LANDMARK|near Raozan Bazar}, {UPAZILA|Raozan}, {DISTRICT|Chattogram}
+
+# ---- T-d1: a lone district, and district + division, with district memory in mind
+T-d1 ::: {HOUSE|House 5}, {DISTRICT|Jashore}, {DIVISION|Khulna}
+T-d1 ::: {LANDMARK|beside Faridpur Medical College}, {DISTRICT|Faridpur}
+T-d1 ::: {ROAD|Road 3}, {AREA|Hemayetpur}, {DISTRICT|Pabna}, {DIVISION|Rajshahi}
+T-d1 ::: {HOUSE|House 9}, {ROAD|Road 4}, {DISTRICT|Bogura}
+T-d1 ::: {LANDMARK|opposite Netrokona Stadium}, {DISTRICT|Netrokona}, {DIVISION|Mymensingh}
+T-d1 ::: {AREA|Maijdee}, {DISTRICT|Noakhali}, {DIVISION|Chattogram}
+T-d1 ::: {BLOCK|Block C}, {DISTRICT|Feni}
+T-d1 ::: {AREA|Shaestaganj}, {DISTRICT|Habiganj}-{POSTCODE|3300}, {DIVISION|Sylhet}
+T-d1 ::: {HOUSE|House 14}, {DISTRICT|Rangpur}, {DIVISION|Rangpur}
+T-d1 ::: {ROAD|Road 7}, {AREA|Paltan}, {DISTRICT|Dhaka}, {DIVISION|Dhaka}
+T-d1 ::: {HOUSE|বাসা ৪}, {DISTRICT|খুলনা}
+T-d1 ::: {AREA|পল্টন}, {DISTRICT|ঢাকা}, {DIVISION|ঢাকা}
+
+# ---- R-: regression guards (new strings for groups fixed in earlier rounds)
+R-keyword ::: {HOUSE|Apt 8D}, {ROAD|Rd. 12}, {BLOCK|Section 9}, {AREA|Banani}, {DISTRICT|Dhaka}-{POSTCODE|1213}
+R-keyword ::: {HOUSE|বাড়ি নং ১৮}, {ROAD|লেন ৪}, {AREA|ধানমন্ডি}, {DISTRICT|ঢাকা}
+R-village ::: Vill: {AREA|Kalikapur}, P.O: {AREA|Kalikapur}, Thana: {UPAZILA|Savar}, Dist: {DISTRICT|Dhaka}
+R-village ::: গ্রাম: {AREA|শিবপুর}, ডাকঘর: {AREA|দৌলতপুর}, থানা: {UPAZILA|সাভার}, জেলা: {DISTRICT|ঢাকা}
+R-landmark ::: {HOUSE|House 20}, {AREA|Uttara}, {LANDMARK|near Uttara Lake}, {DISTRICT|Dhaka}
+R-order ::: {POSTCODE|1216}, {DISTRICT|Dhaka}, {AREA|Mirpur-11}, {ROAD|Road 2}, {HOUSE|House 40}
+R-d10 ::: Level 3, {HOUSE|House 11}, {AREA|Banani}, {DISTRICT|Dhaka}
+R-d10 ::: {AREA|Ward No. 6}, {UPAZILA|Dhamrai}, {DISTRICT|Dhaka}
+R-d11 ::: {AREA|Amtali}, {UPAZILA|Amtali}, {DISTRICT|Barguna}
+R-d11 ::: {UPAZILA|Betagi}, {DISTRICT|Barguna}
+R-upazila ::: {HOUSE|House 3}, {UPAZILA|Keraniganj}, {DISTRICT|Dhaka}
+
+# ---- F-novel: INVENTED names that appear in no gazetteer file. The right label is AREA.
+F-novel ::: {AREA|Shonaitola}, {DISTRICT|Dhaka}
+F-novel ::: {AREA|Moyna Para}, {DISTRICT|Gazipur}-{POSTCODE|1700}
+F-novel ::: {HOUSE|House 7}, {AREA|Dhanshiri}, {DISTRICT|Khulna}
+F-novel ::: {AREA|Alokdia}, {UPAZILA|Savar}, {DISTRICT|Dhaka}
+F-novel ::: Vill: {AREA|Nolbunia}, P.O: {AREA|Ranirhat}, P.S: {UPAZILA|Kaunia}, Dist: {DISTRICT|Rangpur}
+F-novel ::: {AREA|Chhoto Bahadurpur}, {DISTRICT|Tangail}, {DIVISION|Dhaka}
+F-novel ::: {AREA|শিমুলতলী}, {DISTRICT|ঢাকা}
+F-novel ::: {HOUSE|বাসা ৬}, {AREA|নয়াপাড়া}, {UPAZILA|সাভার}, {DISTRICT|ঢাকা}
+
+# ---- F-: constructs deliberately not trained for (new strings; the separator failures are known)
+F-punct ::: {HOUSE|House 21} / {ROAD|Road 3} / {AREA|Banani} / {DISTRICT|Dhaka}
+F-punct ::: {HOUSE|Flat 6C} | {AREA|Mirpur-2} | {DISTRICT|Dhaka}
+F-punct ::: ({ROAD|Road 8}), {AREA|Uttara}, {DISTRICT|Dhaka}
+F-punct ::: {HOUSE|House 9}\n{ROAD|Road 2}\n{AREA|Dhanmondi}\n{DISTRICT|Dhaka}-{POSTCODE|1205}
+F-typo ::: {HOUSE|Hose 33}, {ROAD|Rode 6}, {AREA|Gulshan-2}, {DISTRICT|Dhaka}
+F-typo ::: {HOUSE|Housse 3}, {BLOCK|Blck D}, {AREA|Banani}, {DISTRICT|Dhaka}
+F-postcode ::: {AREA|Mirpur-10}, {DISTRICT|Dhaka}, Post-code: {POSTCODE|1216}
+F-postcode ::: {AREA|বনানী}, {DISTRICT|ঢাকা}, পোস্ট কোড: {POSTCODE|১২১৩}
+F-landmark ::: {HOUSE|House 5}, {AREA|Gulshan-1}, {LANDMARK|near Gulshan-1 DCC Market}, {DISTRICT|Dhaka}
+F-number ::: {HOUSE|House 3-5}, {ROAD|Road 4/B}, {AREA|Uttara}, {DISTRICT|Dhaka}
+F-apostrophe ::: {AREA|Kolatoli}, {DISTRICT|Cox's Bazar}, {DIVISION|Chattogram}
+F-abbrev ::: {AREA|Halishahar}, {DISTRICT|Ctg}-{POSTCODE|4216}
+F-bangla ::: {HOUSE|বাড়ি নম্বর ৯}, {ROAD|সড়ক ৩}, {AREA|মোহাম্মদপুর}, {DISTRICT|ঢাকা}
+
+# ---- generated from the gazetteer and passed through NFC: Bangla table-only upazilas
+# (T-vocab) and NFC-affected names (R-unicode). Each R-unicode name was asserted to CHANGE under NFC.
+T-vocab ::: {UPAZILA|বাকেরগঞ্জ}, {DISTRICT|বরিশাল}
+T-vocab ::: {UPAZILA|ডুমকি}, {DISTRICT|পটুয়াখালী}
+T-vocab ::: {UPAZILA|আনোয়ারা}, {DISTRICT|চট্টগ্রাম}
+R-unicode ::: {UPAZILA|ভ্যান্ডারিয়া}, {DISTRICT|Pirojpur}
+R-unicode ::: {UPAZILA|মাঠবাড়িয়া}, {DISTRICT|Pirojpur}

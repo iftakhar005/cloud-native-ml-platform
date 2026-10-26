@@ -47,3 +47,10 @@ spelling variants are declared on a `#variants:` line.
   instances: regression guards) or F- (constructs deliberately not trained for).
   The T-unicode items are generated from the gazetteer and passed through NFC.
 - Next: a fresh `addresses_v4.txt` before reporting any new number.
+- `addresses_v4.txt` - SPENT. Written after the production models were trained on
+  every gazetteer record and scored once, in the deployment setting. Groups:
+  T-vocab (upazila names the 70% models never saw, in two classes), T-d1,
+  R- regression guards, and F-novel: INVENTED names absent from every gazetteer
+  file, in upazila-like positions, where the right answer is AREA. A test checks
+  both guarantees.
+- Next: a fresh `addresses_v5.txt` before reporting any new number.

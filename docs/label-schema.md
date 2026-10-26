@@ -170,8 +170,7 @@ that follows gets its normal entity label.
 
 ## Decisions added during Task 6
 
-**D11 - A name shared by post office and upazila (PROVISIONAL, awaiting your
-confirmation).** 32% of administrative-upazila records (247 of 781) have a post
+**D11 - A name shared by post office and upazila (ACCEPTED 2026-10-26, as written).** 32% of administrative-upazila records (247 of 781) have a post
 office named exactly like the upazila (Amtali, Bamna, Betagi, ...), so a lone
 `Savar, Dhaka` is genuinely ambiguous. Tie-break within D8:
 - once -> the UPAZILA;
