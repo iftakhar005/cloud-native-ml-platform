@@ -1,0 +1,210 @@
+{
+  "what": "rule baseline scored on SYNTHETIC dev data only; says nothing about real addresses",
+  "dataset_sizes": {
+    "train": 4000,
+    "dev": 600,
+    "test": 600
+  },
+  "dataset_seeds": {
+    "train": 1,
+    "dev": 2,
+    "test": 3
+  },
+  "overall": {
+    "per_label": {
+      "HOUSE": {
+        "precision": 1.0,
+        "recall": 0.9934426229508196,
+        "f1": 0.9967105263157894,
+        "support": 305
+      },
+      "ROAD": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 212
+      },
+      "BLOCK": {
+        "precision": 1.0,
+        "recall": 0.9906542056074766,
+        "f1": 0.9953051643192489,
+        "support": 107
+      },
+      "AREA": {
+        "precision": 0.5798045602605864,
+        "recall": 0.6379928315412187,
+        "f1": 0.6075085324232082,
+        "support": 558
+      },
+      "UPAZILA": {
+        "precision": 0.4838709677419355,
+        "recall": 0.6994818652849741,
+        "f1": 0.5720338983050848,
+        "support": 193
+      },
+      "DISTRICT": {
+        "precision": 0.9465811965811965,
+        "recall": 0.8010849909584087,
+        "f1": 0.8677766895200782,
+        "support": 553
+      },
+      "DIVISION": {
+        "precision": 0.9615384615384616,
+        "recall": 0.6944444444444444,
+        "f1": 0.8064516129032258,
+        "support": 108
+      },
+      "POSTCODE": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 477
+      },
+      "LANDMARK": {
+        "precision": 0.8245614035087719,
+        "recall": 0.8245614035087719,
+        "f1": 0.8245614035087719,
+        "support": 57
+      }
+    },
+    "micro": {
+      "precision": 0.8303777949113339,
+      "recall": 0.8381322957198444,
+      "f1": 0.8342370255615803,
+      "support": 2570
+    },
+    "macro_f1": 0.8522608696994897
+  },
+  "slices": {
+    "latin-only": {
+      "per_label": {
+        "HOUSE": {
+          "precision": 1.0,
+          "recall": 0.9896907216494846,
+          "f1": 0.9948186528497409,
+          "support": 194
+        },
+        "ROAD": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 138
+        },
+        "BLOCK": {
+          "precision": 1.0,
+          "recall": 0.9848484848484849,
+          "f1": 0.9923664122137404,
+          "support": 66
+        },
+        "AREA": {
+          "precision": 0.49872773536895676,
+          "recall": 0.5697674418604651,
+          "f1": 0.531886024423338,
+          "support": 344
+        },
+        "UPAZILA": {
+          "precision": 0.43523316062176165,
+          "recall": 0.7,
+          "f1": 0.536741214057508,
+          "support": 120
+        },
+        "DISTRICT": {
+          "precision": 0.9358490566037736,
+          "recall": 0.7167630057803468,
+          "f1": 0.8117839607201309,
+          "support": 346
+        },
+        "DIVISION": {
+          "precision": 0.9736842105263158,
+          "recall": 0.5692307692307692,
+          "f1": 0.7184466019417477,
+          "support": 65
+        },
+        "POSTCODE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 292
+        },
+        "LANDMARK": {
+          "precision": 0.7804878048780488,
+          "recall": 0.7804878048780488,
+          "f1": 0.7804878048780488,
+          "support": 41
+        }
+      },
+      "micro": {
+        "precision": 0.7940630797773655,
+        "recall": 0.7995018679950187,
+        "f1": 0.7967731926776295,
+        "support": 1606
+      },
+      "macro_f1": 0.8185034078982505
+    },
+    "contains Bangla": {
+      "per_label": {
+        "HOUSE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 111
+        },
+        "ROAD": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 74
+        },
+        "BLOCK": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 41
+        },
+        "AREA": {
+          "precision": 0.7239819004524887,
+          "recall": 0.7476635514018691,
+          "f1": 0.7356321839080459,
+          "support": 214
+        },
+        "UPAZILA": {
+          "precision": 0.5930232558139535,
+          "recall": 0.6986301369863014,
+          "f1": 0.6415094339622641,
+          "support": 73
+        },
+        "DISTRICT": {
+          "precision": 0.9605911330049262,
+          "recall": 0.9420289855072463,
+          "f1": 0.951219512195122,
+          "support": 207
+        },
+        "DIVISION": {
+          "precision": 0.95,
+          "recall": 0.8837209302325582,
+          "f1": 0.9156626506024096,
+          "support": 43
+        },
+        "POSTCODE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 185
+        },
+        "LANDMARK": {
+          "precision": 0.9375,
+          "recall": 0.9375,
+          "f1": 0.9375,
+          "support": 16
+        }
+      },
+      "micro": {
+        "precision": 0.8904810644831116,
+        "recall": 0.9024896265560166,
+        "f1": 0.8964451313755797,
+        "support": 964
+      },
+      "macro_f1": 0.9090581978519824
+    }
+  }
+}
