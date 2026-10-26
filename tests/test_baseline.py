@@ -39,6 +39,10 @@ def test_bangla_digits_are_handled_and_offsets_point_into_the_raw_text(baseline)
     assert got["রোড ৫"] == "ROAD"
 
 
+def test_decision_d8_baseline_does_not_treat_a_dhaka_thana_as_an_upazila(baseline):
+    assert "UPAZILA" not in baseline.names.get(("gulshan",), set())
+
+
 def test_known_weakness_a_misspelled_district_is_mistaken_for_an_area(baseline):
     # Characterisation test: documents what the baseline gets WRONG, so a model
     # that fixes it is a measured improvement and not a claim.

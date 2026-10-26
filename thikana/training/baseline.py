@@ -59,7 +59,7 @@ class Baseline:
             for name, label in ((p.district, "DISTRICT"), (p.district_bn, "DISTRICT"),
                                 (p.upazila, "UPAZILA"), (p.upazila_bn, "UPAZILA"),
                                 (p.division, "DIVISION"), (p.division_bn, "DIVISION")):
-                if name:
+                if name and (label != "UPAZILA" or p.upazila_admin):  # decision D8
                     self.names[self._key(tokenize(name))].add(label)
         self.longest = max(len(key) for key in self.names)
 

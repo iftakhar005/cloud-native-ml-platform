@@ -56,6 +56,7 @@ class Place:
     area: str
     upazila: str
     upazila_bn: str | None
+    upazila_admin: bool  # decision D8: UPAZILA only for names in the upazilas table
     district: str
     district_bn: str
     division: str
@@ -80,9 +81,10 @@ def build_places(frames: dict | None = None) -> list[Place]:
         d = districts.loc[r.district_id]
         v = divisions.loc[d["division_id"]]
         upazila = _clean_upazila(r.upazila)
+        key = (r.district_id, upazila.lower())
         places.append(Place(
             area=r.postOffice.strip(), upazila=upazila,
-            upazila_bn=upazila_bn.get((r.district_id, upazila.lower())),
+            upazila_bn=upazila_bn.get(key), upazila_admin=key in upazila_bn,
             district=d["name"].strip(), district_bn=d["bn_name"].strip(),
             division=v["name"].strip(), division_bn=v["bn_name"].strip(),
             postcode=r.postCode,
@@ -193,7 +195,7 @@ def _one(rng, places, by_district, urban_pool) -> Example:
     if rng.random() < 0.92:  # real addresses sometimes have no area at all
         chunks.append(area_chunk)
 
-    if not urban and rng.random() < 0.85:
+    if not urban and place.upazila_admin and rng.random() < 0.85:
         upazila = place.upazila
         if upazila.endswith("Sadar") and rng.random() < 0.3:
             upazila = "Sadar"  # decision D4: a lone "Sadar" is still an UPAZILA

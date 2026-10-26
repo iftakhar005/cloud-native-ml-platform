@@ -5,7 +5,7 @@ import pytest
 
 from thikana.schema import ENTITY_TYPES
 from thikana.text import bio_to_spans, normalize_digits, tokenize, to_bio
-from thikana.training.synth import build_places, generate, split_places
+from thikana.training.synth import URBAN_AREAS, build_places, generate, split_places
 
 
 @pytest.fixture(scope="module")
@@ -72,6 +72,26 @@ def test_a_division_never_appears_without_a_district(splits):
     for example in generate(splits["train"], 3000, seed=1):
         if example.surface("DIVISION"):
             assert example.surface("DISTRICT"), example.text
+
+
+def test_decision_d8_only_administrative_names_are_labelled_upazila(splits, places):
+    # regression: "Gulshan" is both a neighbourhood and a Dhaka thana listed as
+    # an "upazila" in the postcode file. D8: only names in the upazilas table
+    # are UPAZILA. A neighbourhood name may still be UPAZILA when it genuinely
+    # is one elsewhere ("Mohammadpur" is also an upazila of Magura).
+    urban = {n.lower() for en, bn, _ in URBAN_AREAS for n in (en, bn)}
+    admin = {p.upazila.lower() for p in places if p.upazila_admin}
+    for example in generate(splits["train"], 3000, seed=1):
+        for surface in example.surface("UPAZILA"):
+            if surface.lower() in urban:
+                assert surface.lower() in admin, example.text
+    assert any(example.surface("UPAZILA")
+               for example in generate(splits["train"], 500, seed=1))  # still produced
+
+
+def test_non_administrative_postcode_upazilas_are_flagged(places):
+    flagged = [p for p in places if not p.upazila_admin]
+    assert 0 < len(flagged) < len(places)
 
 
 def test_excluded_strings_never_reappear(splits):
