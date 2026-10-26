@@ -1,4 +1,4 @@
-# Address label schema v0.1 (DRAFT - decisions marked PROPOSED need owner sign-off)
+# Address label schema v0.1 (ACCEPTED 2026-10-26: D1-D6 signed off by the project owner)
 
 Each token of an address gets exactly one label. BIO prefixes (B-/I-) are added
 at training time, so annotators only choose the entity type.
@@ -23,28 +23,28 @@ parsing (privacy) and never reach the model or the logs.
 
 ## Decisions
 
-**D1 - A bare "Dhaka" (PROPOSED).** Eight division names are also district names
+**D1 - A bare "Dhaka" (accepted).** Eight division names are also district names
 (measured, below), and "Dhaka" can also mean the city. Rule: one occurrence ->
 DISTRICT. If the same name appears twice ("Sylhet, Sylhet"), first is DISTRICT,
 second is DIVISION. There is no CITY label in v0.1.
 *Why:* annotating city-vs-district intent is subjective, and every extra
 label lowers the achievable agreement. Revisit if real data demands it.
 
-**D2 - "12/5" (PROPOSED).** A number, slash, number at the start of an address,
+**D2 - "12/5" (accepted).** A number, slash, number at the start of an address,
 or directly after "house/holding/flat/H#", is HOUSE. A number after
 "road/rd/lane" is ROAD. A bare number elsewhere with no keyword is left for
 the annotator's judgement and logged as "ambiguous" so it can be counted.
 
 **D3 - Names and phone numbers.** Stripped before labelling. Not a label.
 
-**D4 - A lone "Sadar" (PROPOSED).** Label UPAZILA. The parser later flags the
+**D4 - A lone "Sadar" (accepted).** Label UPAZILA. The parser later flags the
 address as incomplete because the district is missing.
 
-**D5 - Digits (PROPOSED).** Bangla digits (০-৯) are mapped to ASCII (0-9)
+**D5 - Digits (accepted).** Bangla digits (০-৯) are mapped to ASCII (0-9)
 before labelling. The mapping is one character to one character, so character
 offsets are preserved.
 
-**D6 - Spelling (PROPOSED).** Label what the token IS, not whether it matches
+**D6 - Spelling (accepted).** Label what the token IS, not whether it matches
 the gazetteer. `Chapai Nawabganj` and `Nawabganj` are both DISTRICT.
 Matching to the gazetteer is a separate, later step.
 

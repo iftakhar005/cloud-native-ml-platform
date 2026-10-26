@@ -1,3 +1,7 @@
+import hashlib
+import re
+from pathlib import Path
+
 import pytest
 
 from thikana.training import gazetteer
@@ -34,3 +38,13 @@ def test_unknown_district_spelling_fails_loudly_instead_of_being_guessed(monkeyp
     monkeypatch.setattr(gazetteer, "DISTRICT_ALIASES", {})
     with pytest.raises(ValueError, match="Unmapped district spellings"):
         load_all()
+
+
+def test_data_files_are_byte_identical_to_the_manifest():
+    """Fails if git (or anything else) rewrites line endings in the data."""
+    manifest = (gazetteer.GAZETTEER_DIR / "MANIFEST.md").read_text(encoding="utf-8")
+    expected = dict(re.findall(r"\| (bd-[a-z]+\.json) \| \d+ \| `([0-9a-f]{64})`", manifest))
+    assert len(expected) == len(FILES)
+    for filename, digest in expected.items():
+        actual = hashlib.sha256((gazetteer.GAZETTEER_DIR / filename).read_bytes()).hexdigest()
+        assert actual == digest, f"{filename} bytes changed"
