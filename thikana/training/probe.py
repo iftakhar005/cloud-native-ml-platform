@@ -8,7 +8,7 @@ and prove nothing about accuracy. Two kinds:
     checklist. Several are CONTRAST pairs that would expose a shortcut in
     either direction (e.g. "Dhaka-1216" vs "Mirpur-10" vs "Holding 1845").
   * LOOK-ONLY probes have no expected answer, because they involve schema
-    decisions that are still open (D10) or are simply for reading.
+    decisions that are still open (building / office names) or are simply for reading.
 
 Run:  python -m thikana.training.probe [model_name]     (default crf_v1_surface_context)
 """
@@ -29,7 +29,7 @@ class Probe:
     expected: tuple[tuple[str, str], ...] | None = None  # (surface, label); None = look only
 
 
-D9_PROBES = [
+SCORED_PROBES = [
     # the reported failure and its direct variants
     Probe("Mirpur-10, Dhaka-1216", (("Mirpur-10", "AREA"), ("Dhaka", "DISTRICT"), ("1216", "POSTCODE"))),
     Probe("Mirpur 10, Dhaka 1216", (("Mirpur 10", "AREA"), ("Dhaka", "DISTRICT"), ("1216", "POSTCODE"))),
@@ -52,6 +52,45 @@ D9_PROBES = [
           (("Uttara", "AREA"), ("Sector 7", "BLOCK"), ("Dhaka", "DISTRICT"), ("1230", "POSTCODE"))),
     # lone district with no postcode (decision D1)
     Probe("mirpur 10 dhaka", (("mirpur 10", "AREA"), ("dhaka", "DISTRICT"))),
+    # keyword families the generator once never wrote
+    Probe("Plot 12, Road No. 4, Section 7, Mirpur, Dhaka",
+          (("Plot 12", "HOUSE"), ("Road No. 4", "ROAD"), ("Section 7", "BLOCK"),
+           ("Mirpur", "AREA"), ("Dhaka", "DISTRICT"))),
+    Probe("Apt 5C, Ln 3, Phase 2, Uttara, Dhaka-1230",
+          (("Apt 5C", "HOUSE"), ("Ln 3", "ROAD"), ("Phase 2", "BLOCK"), ("Uttara", "AREA"),
+           ("Dhaka", "DISTRICT"), ("1230", "POSTCODE"))),
+    # decision D7: introducers are O, the value after them is labelled
+    Probe("Vill: Rampur, P.O: Kalikapur, P.S: Savar, Dist: Dhaka",
+          (("Rampur", "AREA"), ("Kalikapur", "AREA"), ("Savar", "UPAZILA"), ("Dhaka", "DISTRICT"))),
+    Probe("Village- Noapara, Thana- Keraniganj, District- Dhaka",
+          (("Noapara", "AREA"), ("Keraniganj", "UPAZILA"), ("Dhaka", "DISTRICT"))),
+    Probe("গ্রাম: রামপুর, থানা: সাভার, জেলা: ঢাকা",
+          (("রামপুর", "AREA"), ("সাভার", "UPAZILA"), ("ঢাকা", "DISTRICT"))),
+    # decision D10: Shop and Level are O, Ward is one AREA span
+    Probe("Shop 12, Level 3, Mirpur-10, Dhaka-1216",
+          (("Mirpur-10", "AREA"), ("Dhaka", "DISTRICT"), ("1216", "POSTCODE"))),
+    Probe("দোকান ১২, লেভেল ৩, মিরপুর-১০, ঢাকা",
+          (("মিরপুর-১০", "AREA"), ("ঢাকা", "DISTRICT"))),
+    Probe("Ward 5, Savar, Dhaka", (("Ward 5", "AREA"), ("Savar", "UPAZILA"), ("Dhaka", "DISTRICT"))),
+    # landmarks, including one named after the address's own area
+    Probe("House 4, Banani, near Banani Lake, Dhaka",
+          (("House 4", "HOUSE"), ("Banani", "AREA"), ("near Banani Lake", "LANDMARK"),
+           ("Dhaka", "DISTRICT"))),
+    Probe("যমুনা ফিউচার পার্কের পাশে, বসুন্ধরা, ঢাকা",
+          (("যমুনা ফিউচার পার্কের পাশে", "LANDMARK"), ("বসুন্ধরা", "AREA"), ("ঢাকা", "DISTRICT"))),
+    # reversed order
+    Probe("Dhaka 1207, Road 5, House 12, Dhanmondi",
+          (("Dhaka", "DISTRICT"), ("1207", "POSTCODE"), ("Road 5", "ROAD"),
+           ("House 12", "HOUSE"), ("Dhanmondi", "AREA"))),
+    Probe("1216, Dhaka, Mirpur-10, Road 3, House 5",
+          (("1216", "POSTCODE"), ("Dhaka", "DISTRICT"), ("Mirpur-10", "AREA"),
+           ("Road 3", "ROAD"), ("House 5", "HOUSE"))),
+    # decision D1 in both directions
+    Probe("House 9, Road 2, Lalmatia, Dhaka",
+          (("House 9", "HOUSE"), ("Road 2", "ROAD"), ("Lalmatia", "AREA"), ("Dhaka", "DISTRICT"))),
+    Probe("Rayenda, Bagerhat, Khulna",
+          (("Rayenda", "AREA"), ("Bagerhat", "DISTRICT"), ("Khulna", "DIVISION"))),
+    Probe("সাহেব বাজার, রাজশাহী", (("সাহেব বাজার", "AREA"), ("রাজশাহী", "DISTRICT"))),
 ]
 
 LOOK_ONLY = [Probe(t) for t in [
@@ -61,8 +100,8 @@ LOOK_ONLY = [Probe(t) for t in [
     "House#8, Road#4, Sector-11, Uttara, Dhaka-1230, Bangladesh",
     "বাসা ৮, রোড ৪, সেক্টর ১১, উত্তরা, ঢাকা-১২৩০",
     "Opposite of City College, Dhanmondi 27, Dhaka",
-    "Shop 12, Level 3, Bashundhara City Shopping Complex, Panthapath, Dhaka",  # D10 open
-    "Ward 5, Union Parishad Office, Savar, Dhaka",                              # D10 open
+    "Shop 12, Level 3, Bashundhara City Shopping Complex, Panthapath, Dhaka",  # building names: undecided
+    "Ward 5, Union Parishad Office, Savar, Dhaka",                              # office names: undecided
     "45 Zigatola, Dhaka 1209",
 ]]
 
@@ -91,14 +130,14 @@ def main() -> None:
 
     passed = 0
     print(f"model: {name}\n\nSCORED probes (expected answers written from the schema):")
-    for probe in D9_PROBES:
+    for probe in SCORED_PROBES:
         got = parser.predict(probe.text)
         ok = surfaces(probe.text, got) == set(probe.expected)
         passed += ok
         print(f"  {'PASS' if ok else 'FAIL'}  {probe.text}")
         if not ok:
             print(f"        got: {mark(probe.text, got)}")
-    print(f"\n{passed} of {len(D9_PROBES)} scored probes pass "
+    print(f"\n{passed} of {len(SCORED_PROBES)} scored probes pass "
           "(hand-written checklist, NOT an accuracy measurement)")
 
     print("\nLOOK-ONLY probes:")

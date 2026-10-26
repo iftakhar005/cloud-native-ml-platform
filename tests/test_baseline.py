@@ -54,6 +54,30 @@ def test_decision_d9_baseline_does_not_absorb_a_four_digit_postcode(baseline):
     assert got == {"Mazara": "AREA", "1212": "POSTCODE"}
 
 
+def test_the_baseline_knows_the_same_keyword_families_as_the_generator(baseline):
+    got = labelled(baseline, "Plot 7, Road No. 9, Section 6, Apartment 4B, Mazara, Dhaka")
+    assert got["Plot 7"] == "HOUSE"
+    assert got["Road No. 9"] == "ROAD"
+    assert got["Section 6"] == "BLOCK"
+    assert got["Apartment 4B"] == "HOUSE"
+
+
+def test_decision_d10_baseline_leaves_shop_and_level_unlabelled_and_ward_is_area(baseline):
+    got = labelled(baseline, "Shop 12, Level 3, Ward 5, Mazara, Dhaka")
+    assert "Shop 12" not in got and "Level 3" not in got
+    assert got["Ward 5"] == "AREA"
+
+
+def test_decision_d7_baseline_ignores_introducer_words(baseline):
+    got = labelled(baseline, "Vill: Rampur, P.O: Mazara, Dist: Sylhet")
+    assert got == {"Rampur": "AREA", "Mazara": "AREA", "Sylhet": "DISTRICT"}
+
+
+def test_the_baseline_finds_a_wider_landmark(baseline):
+    got = labelled(baseline, "near Dhanmondi Lake, Mazara, Dhaka")
+    assert got["near Dhanmondi Lake"] == "LANDMARK"
+
+
 def test_known_weakness_a_misspelled_district_is_mistaken_for_an_area(baseline):
     # Characterisation test: documents what the baseline gets WRONG, so a model
     # that fixes it is a measured improvement and not a claim.

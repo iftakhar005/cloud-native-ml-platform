@@ -4,9 +4,9 @@ Labels are correct by construction: text is assembled from labelled pieces and
 noise is applied to the pieces BEFORE joining, so character spans never drift.
 
 Limits to remember: neighbourhood names come from a small hand-written list,
-ordering is almost always small-to-large, and every kind of mess here is one a
-human thought of. Real addresses will contain mess that is not. That gap is
-what the hand-labelled real test set measures.
+and every kind of mess here is one a human thought of. Real addresses will
+contain mess that is not. That gap is what hand-written and, eventually, real
+evaluation sets measure.
 """
 
 from __future__ import annotations
@@ -34,24 +34,33 @@ URBAN_AREAS = [
     ("Nasirabad", "নাসিরাবাদ", "Chattogram"), ("Zindabazar", "জিন্দাবাজার", "Sylhet"),
     ("Upashahar", "উপশহর", "Sylhet"), ("Sonadanga", "সোনাডাঙ্গা", "Khulna"),
     ("Shaheb Bazar", "সাহেব বাজার", "Rajshahi"),
+    # more cities, so a lone trailing district is not mostly "Dhaka" (decision D1)
+    ("Amberkhana", "আম্বরখানা", "Sylhet"), ("Subid Bazar", "সুবিদবাজার", "Sylhet"),
+    ("Khulshi", "খুলশী", "Chattogram"), ("Halishahar", "হালিশহর", "Chattogram"),
+    ("Panchlaish", "পাঁচলাইশ", "Chattogram"), ("Rupatoli", "রূপাতলী", "Barishal"),
+    ("Nathullabad", "নথুল্লাবাদ", "Barishal"), ("Kandirpar", "কান্দিরপাড়", "Cumilla"),
+    ("Ganginarpar", "গাঙ্গিনারপাড়", "Mymensingh"), ("Kazla", "কাজলা", "Rajshahi"),
+    ("Khalishpur", "খালিশপুর", "Khulna"),
 ]
+
+# Fixed landmark names; most landmarks are composed (see _landmark).
 LANDMARKS = [
     ("Jamuna Future Park", "যমুনা ফিউচার পার্ক"), ("Central Mosque", "কেন্দ্রীয় মসজিদ"),
     ("City Hospital", "সিটি হাসপাতাল"), ("Bus Stand", "বাস স্ট্যান্ড"),
     ("Railway Station", "রেলওয়ে স্টেশন"),
 ]
-LANDMARK_WORDS = ("near", "beside", "opposite", "behind")
-
-# Hand-written, NOT authoritative: area names that carry a number, with the
-# highest number used (decision D9). Mirpur has sections 1-14, Dhanmondi 1-32,
-# Gulshan 1-2.
-NUMBERED_AREAS = {"Mirpur": 14, "Dhanmondi": 32, "Gulshan": 2}
-
-# A deliberate augmentation, NOT observed data: a few rural post-office names
-# also get a number. Without it the model could learn the shortcut "Mirpur /
-# Dhanmondi / Gulshan + digits" instead of the structure "a name followed by a
-# 1-2 digit number is part of the name".
-RURAL_NUMBERED_RATE = 0.04
+FACILITIES = [
+    ("Lake", "লেক"), ("Metro Rail Station", "মেট্রো রেল স্টেশন"), ("Graveyard", "কবরস্থান"),
+    ("Market", "মার্কেট"), ("Central Mosque", "কেন্দ্রীয় মসজিদ"), ("Hospital", "হাসপাতাল"),
+    ("Medical College", "মেডিকেল কলেজ"), ("School", "স্কুল"), ("College", "কলেজ"),
+    ("University", "বিশ্ববিদ্যালয়"), ("Bus Stand", "বাস স্ট্যান্ড"),
+    ("Railway Station", "রেলওয়ে স্টেশন"), ("Park", "পার্ক"), ("Bridge", "ব্রিজ"),
+    ("Bazar", "বাজার"), ("Eidgah", "ঈদগাহ"), ("Petrol Pump", "পেট্রোল পাম্প"),
+    ("Madrasa", "মাদ্রাসা"), ("Shopping Mall", "শপিং মল"),
+]
+LANDMARK_LEADS = ("near", "beside", "opposite", "opposite of", "behind",
+                  "adjacent to", "next to", "in front of", "close to")
+LANDMARK_PARTICLES_BN = ("পাশে", "সামনে", "কাছে", "পেছনে")
 
 # Spellings people really write that differ from the gazetteer's.
 SPELLING_VARIANTS = {
@@ -59,6 +68,47 @@ SPELLING_VARIANTS = {
     "Barishal": ["Barisal"], "Bogura": ["Bogra"], "Jashore": ["Jessore"],
     "Mymensingh": ["Mymensing"], "Sylhet": ["Sylet"],
 }
+
+# Hand-written, NOT authoritative: area names that carry a number, with the
+# highest number used (decision D9).
+NUMBERED_AREAS = {"Mirpur": 14, "Dhanmondi": 32, "Gulshan": 2}
+
+# A deliberate augmentation, NOT observed data: a few rural post-office names
+# also get a number, so the model learns the structure, not three names.
+RURAL_NUMBERED_RATE = 0.04
+
+# Keyword vocabularies. HOUSE / ROAD / BLOCK keywords are PART of the span.
+HOUSE_KW_EN = ("House", "House", "Hse", "H", "H.No", "Holding", "Flat", "Apartment",
+               "Apt", "Plot", "Plot No")
+HOUSE_KW_BN = ("বাসা", "বাড়ি", "হোল্ডিং", "ফ্ল্যাট", "প্লট")
+ROAD_KW_EN = ("Road", "Road", "Rd", "Rd.", "R", "Lane", "Ln", "Street", "Avenue")
+ROAD_KW_BN = ("রোড", "লেন")
+BLOCK_KW_EN = ("Block", "Blk", "Sector", "Section", "Phase")
+BLOCK_KW_BN = ("ব্লক", "সেক্টর", "সেকশন")
+CONNECTORS_EN = (" ", " ", "-", "#", " No. ", " No-", " No ")
+CONNECTORS_NO_EN = (" ", "-", ". ")  # for keywords that already end in "No"
+CONNECTORS_BN = (" ", " ", "-", " নং ", " নং-")
+CONNECTORS_BLOCK = (" ", " ", "-", "#")
+
+# Introducer words (decision D7): labelled O, the value after them is labelled.
+INTRODUCERS = {
+    "village": (("Vill", "Village", "Gram"), ("গ্রাম",)),
+    "post": (("P.O", "PO", "Post", "Post Office"), ("ডাকঘর", "পোস্ট")),
+    "thana": (("Thana", "P.S", "PS", "Upazila", "Upazilla", "Police Station"),
+              ("থানা", "উপজেলা")),
+    "district": (("Dist", "District", "Zila"), ("জেলা",)),
+}
+INTRO_CONNECTORS = (": ", "- ", ":", "-", ". ", " ")
+
+# Rates. FORM_STYLE: rural addresses written like a paper form (every level has
+# an introducer). DIVISION_RATE is high on purpose: decision D1 needs plenty of
+# "district, division" pairs with no postcode in between.
+INTRO_RATE = 0.10
+FORM_STYLE_RATE = 0.20
+REVERSED_RATE = 0.10
+SHOP_LEVEL_RATE = 0.07   # decision D10: Shop / Level are O
+WARD_RATE = 0.06         # decision D10: Ward is AREA
+DIVISION_RATE = 0.30
 
 
 @dataclass(frozen=True)
@@ -144,17 +194,60 @@ def _digits(text: str, bangla: bool, rng: random.Random) -> str:
     return text.translate(BN_DIGITS) if bangla and rng.random() < 0.7 else text
 
 
+# ---- units: house / road / block / shop / level / ward -------------------
+
+def _connector(keyword: str, bn: bool, rng: random.Random, pool=None) -> str:
+    if bn:
+        return rng.choice(CONNECTORS_BN)
+    if pool is not None:
+        return rng.choice(pool)
+    return rng.choice(CONNECTORS_NO_EN if keyword.endswith("No") else CONNECTORS_EN)
+
+
 def _house(rng, bn):
-    # Real holding numbers can have 4 digits. Keep those keyword-led so they
-    # are not confused with a postcode; otherwise "4 digits" becomes a shortcut.
+    # Real holding numbers can have 4 digits. Keep those keyword-led so they are
+    # not confused with a postcode; otherwise "4 digits" becomes a shortcut.
     big = rng.random() < 0.06
     n = rng.randint(1000, 2999) if big else rng.randint(1, 150)
-    m = rng.randint(1, 12)
-    forms = ([f"বাসা {n}", f"বাড়ি {n}", f"বাসা নং {n}", f"{n}/{m}"] if bn else
-             [f"House {n}", f"House-{n}", f"H#{n}", f"H-{n}", f"Holding {n}", f"{n}",
-              f"{n}/{m}", f"Flat {n}{rng.choice('ABCD')}"])
-    if big:
-        forms = [f for f in forms if not f[0].isdigit()]
+    if not big and rng.random() < 0.12:  # a bare number at the start of an address
+        return _digits(rng.choice((f"{n}", f"{n}/{rng.randint(1, 12)}")), bn, rng)
+    keyword = rng.choice(HOUSE_KW_BN if bn else HOUSE_KW_EN)
+    number = rng.choice((f"{n}", f"{n}", f"{n}/{rng.randint(1, 12)}",
+                         f"{n}{rng.choice('ABCD')}"))
+    return _digits(keyword + _connector(keyword, bn, rng) + number, bn, rng)
+
+
+def _road(rng, bn):
+    keyword = rng.choice(ROAD_KW_BN if bn else ROAD_KW_EN)
+    return _digits(f"{keyword}{_connector(keyword, bn, rng)}{rng.randint(1, 40)}", bn, rng)
+
+
+def _block(rng, bn):
+    keyword = rng.choice(BLOCK_KW_BN if bn else BLOCK_KW_EN)
+    connector = rng.choice(CONNECTORS_BLOCK)
+    if keyword in ("Block", "Blk", "ব্লক"):
+        letter = rng.choice("ABCDEFGH")
+        return keyword + connector + (BN_LETTERS[letter] if bn else letter)
+    return _digits(f"{keyword}{connector}{rng.randint(1, 14)}", bn, rng)
+
+
+def _shop_level(rng, bn):
+    """Decision D10: Shop / Level are NOT entities. The caller labels this O."""
+    if rng.random() < 0.6:
+        n = rng.randint(1, 40)
+        forms = ([f"দোকান {n}", f"দোকান নং {n}"] if bn else
+                 [f"Shop {n}", f"Shop-{n}", f"Shop No-{n}", f"Shop No. {n}", f"Shop#{n}"])
+    else:
+        n = rng.randint(1, 9)
+        forms = [f"লেভেল {n}"] if bn else [f"Level {n}", f"Level-{n}", f"Level#{n}"]
+    return _digits(rng.choice(forms), bn, rng)
+
+
+def _ward(rng, bn):
+    """Decision D10: Ward is ONE AREA span, keyword and number included."""
+    n = rng.randint(1, 9)
+    forms = ([f"ওয়ার্ড {n}", f"ওয়ার্ড নং {n}"] if bn else
+             [f"Ward {n}", f"Ward No. {n}", f"Ward-{n}", f"Ward No-{n}"])
     return _digits(rng.choice(forms), bn, rng)
 
 
@@ -163,23 +256,35 @@ def _numbered(surface: str, number: int, bangla: bool, rng: random.Random) -> st
     return surface + rng.choice(("-", "-", " ", " - ")) + _digits(str(number), bangla, rng)
 
 
-def _road(rng, bn):
-    n = rng.randint(1, 40)
-    forms = ([f"রোড {n}", f"রোড নং {n}", f"লেন {n}"] if bn else
-             [f"Road {n}", f"Road-{n}", f"Rd {n}", f"R#{n}", f"Lane {n}"])
-    return _digits(rng.choice(forms), bn, rng)
+def _intro(kind: str, bangla: bool, rng: random.Random) -> str:
+    """An introducer word plus connector, e.g. 'P.O: ' (decision D7: labelled O)."""
+    words = INTRODUCERS[kind][1 if bangla else 0]
+    return rng.choice(words) + rng.choice(INTRO_CONNECTORS)
 
 
-def _block(rng, bn):
-    letter, n = rng.choice("ABCDEFGH"), rng.randint(1, 12)
-    forms = ([f"ব্লক {BN_LETTERS[letter]}", f"সেক্টর {n}"] if bn else
-             [f"Block {letter}", f"Block-{letter}", f"Blk {letter}", f"Sector {n}"])
-    return _digits(rng.choice(forms), bn, rng)
-
-
-def _landmark(rng, bn):
-    en, bangla = rng.choice(LANDMARKS)
-    return f"{bangla} এর পাশে" if bn else f"{rng.choice(LANDMARK_WORDS)} {en}"
+def _landmark(rng, bn, head_en, head_bn):
+    """A landmark built from pieces, so the model learns the pattern, not 5 names."""
+    facility_en, facility_bn = rng.choice(FACILITIES)
+    if rng.random() < 0.3:
+        name_en, name_bn = rng.choice(LANDMARKS)
+    else:
+        top = NUMBERED_AREAS.get(head_en)
+        number = rng.randint(1, top) if top and rng.random() < 0.4 else None
+        base_en = f"{head_en}-{number}" if number else head_en
+        base_bn = (f"{head_bn}-{_digits(str(number), True, rng)}" if number else head_bn
+                   ) if head_bn else None
+        name_en = f"{base_en} {facility_en}"
+        name_bn = f"{base_bn} {facility_bn}" if base_bn else None
+    if bn and name_bn:
+        particle = rng.choice(LANDMARK_PARTICLES_BN)
+        style = rng.random()
+        if style < 0.4:
+            return f"{name_bn} এর {particle}"
+        if style < 0.6:
+            return f"{name_bn}-এর {particle}"
+        genitive = "ের" if "ক" <= name_bn[-1] <= "হ" else "র"  # attached form
+        return f"{name_bn}{genitive} {particle}"
+    return f"{rng.choice(LANDMARK_LEADS)} {name_en}"
 
 
 # ---- assembling one address ----------------------------------------------
@@ -187,6 +292,8 @@ def _landmark(rng, bn):
 def _one(rng, places, by_district, urban_pool) -> Example:
     mode = rng.choices(("en", "bn", "mixed"), (0.6, 0.15, 0.25))[0]
     urban = bool(urban_pool) and rng.random() < 0.5
+    form = (not urban) and rng.random() < FORM_STYLE_RATE
+    reverse = rng.random() < REVERSED_RATE
     if urban:
         area_en, area_bn, district = rng.choice(urban_pool)
         place = rng.choice(by_district[district])
@@ -202,14 +309,28 @@ def _one(rng, places, by_district, urban_pool) -> Example:
             return bn
         return _latin(en, rng)
 
+    def intro(kind, always=False):
+        if always or rng.random() < INTRO_RATE:
+            return [(_intro(kind, _pick_script(mode, rng), rng), None)]
+        return []
+
     chunks: list[list[tuple[str, str | None]]] = []
     for p, label, make in ((p_house, "HOUSE", _house), (p_road, "ROAD", _road),
                            (p_block, "BLOCK", _block)):
         if rng.random() < p:
             chunks.append([(make(rng, _pick_script(mode, rng)), label)])
+    if rng.random() < SHOP_LEVEL_RATE:
+        shop = [(_shop_level(rng, _pick_script(mode, rng)), None)]
+        chunks.insert(rng.randint(0, min(len(chunks), 2)), shop)
     if rng.random() < 0.10:
-        landmark = [(_landmark(rng, _pick_script(mode, rng)), "LANDMARK")]
+        landmark = [(_landmark(rng, _pick_script(mode, rng), area_en, area_bn), "LANDMARK")]
         chunks.insert(rng.randint(0, len(chunks)), landmark)
+
+    if form:  # a village line, as on a paper form: "Vill: X, P.O: Y, ..."
+        village = _latin(rng.choice(places).area, rng)
+        chunks.append([*intro("village", always=True), (village, "AREA")])
+    if not urban and rng.random() < WARD_RATE:
+        chunks.append([(_ward(rng, _pick_script(mode, rng)), "AREA")])
 
     use_bn = area_bn is not None and _pick_script(mode, rng)
     area = area_bn if use_bn else _latin(area_en, rng)
@@ -218,51 +339,67 @@ def _one(rng, places, by_district, urban_pool) -> Example:
         area = _numbered(area, rng.randint(1, top), use_bn, rng)
     elif not urban and rng.random() < RURAL_NUMBERED_RATE:
         area = _numbered(area, rng.randint(1, 9), False, rng)
-    area_chunk = [(area, "AREA")]
-    if not urban and rng.random() < 0.10:
-        area_chunk.insert(0, ("P.O: ", None))
-    if rng.random() < 0.92:  # real addresses sometimes have no area at all
+    area_chunk = [*(intro("post", always=form) if not urban else []), (area, "AREA")]
+    if rng.random() < (0.85 if form else 0.92):  # real addresses sometimes have no area
         chunks.append(area_chunk)
 
-    if not urban and place.upazila_admin and rng.random() < 0.85:
+    if not urban and place.upazila_admin and rng.random() < (0.95 if form else 0.85):
         upazila = place.upazila
         if upazila.endswith("Sadar") and rng.random() < 0.3:
             upazila = "Sadar"  # decision D4: a lone "Sadar" is still an UPAZILA
-        if upazila.lower() != place.area.lower() or rng.random() < 0.5:
-            kw = [("Upazila: ", None)] if rng.random() < 0.10 else []
-            chunks.append(kw + [(name(upazila, place.upazila_bn), "UPAZILA")])
+        if form or upazila.lower() != place.area.lower() or rng.random() < 0.5:
+            chunks.append([*intro("thana", always=form),
+                           (name(upazila, place.upazila_bn), "UPAZILA")])
 
-    district_chunk: list[tuple[str, str | None]] = []
+    district_pieces: list[tuple[str, str | None]] = []
     if rng.random() < 0.93:
-        if rng.random() < 0.10:
-            district_chunk.append(("জেলা: " if mode == "bn" else "Dist: ", None))
-        district_chunk.append((name(place.district, place.district_bn), "DISTRICT"))
-    if rng.random() < 0.80:
-        glue = rng.choice(("-", " ", ", ", " - ")) if district_chunk else ""
+        district_pieces = [*intro("district", always=form),
+                           (name(place.district, place.district_bn), "DISTRICT")]
+    # Decision D1: DISTRICT first, DIVISION after. A lone occurrence of a name
+    # that is both is a DISTRICT, so a division is only emitted beside a district
+    # (and never in reversed order, where "first / second" has no meaning).
+    division = None
+    if district_pieces and not reverse and rng.random() < DIVISION_RATE:
+        division = [(name(place.division, place.division_bn), "DIVISION")]
+    # With a division the postcode often drops out, so "district, division" sit
+    # directly together: the case a postcode between them used to hide.
+    district_chunk = district_pieces
+    if rng.random() < (0.40 if division else 0.70):
         code = _digits(place.postcode, _pick_script(mode, rng), rng)
-        district_chunk += ([(glue, None)] if glue else []) + [(code, "POSTCODE")]
+        if district_pieces and reverse and rng.random() < 0.4:
+            glue = rng.choice((", ", " ", " - "))
+            district_chunk = [(code, "POSTCODE"), (glue, None), *district_pieces]
+        else:
+            glue = rng.choice(("-", " ", ", ", " - ")) if district_pieces else ""
+            district_chunk = [*district_pieces, *([(glue, None)] if glue else []),
+                              (code, "POSTCODE")]
     if district_chunk:
         chunks.append(district_chunk)
-
-    # Decision D1: DISTRICT first, DIVISION after. A lone occurrence of a name
-    # that is both is a DISTRICT, so a division is only emitted beside a district.
-    has_district = any(label == "DISTRICT" for _, label in district_chunk)
-    if has_district and rng.random() < 0.20:
-        chunks.append([(name(place.division, place.division_bn), "DIVISION")])
+    if division:
+        chunks.append(division)
     if rng.random() < 0.10:
         chunks.append([("বাংলাদেশ" if mode == "bn" else "Bangladesh", None)])
 
-    if not chunks:  # never emit an empty address
+    if reverse:
+        chunks.reverse()
+    if not any(label for chunk in chunks for _, label in chunk):  # never an empty address
         chunks.append(area_chunk)
 
     base_sep = rng.choices((", ", ",", " ", " - ", "; "), (0.55, 0.15, 0.15, 0.08, 0.07))[0]
     vary_sep = rng.random() < 0.25
     case = rng.choices((str, str.lower, str.upper), (0.85, 0.10, 0.05))[0]
 
+    def is_landmark(chunk):
+        return any(label == "LANDMARK" for _, label in chunk)
+
     text, spans = "", []
     for i, chunk in enumerate(chunks):
         if i:
-            text += rng.choice((", ", " ", " - ")) if vary_sep else base_sep
+            if is_landmark(chunks[i - 1]) or is_landmark(chunk):
+                # a landmark's end is invisible without punctuation: nobody could label it
+                text += rng.choice((", ", " - ", "; "))
+            else:
+                text += rng.choice((", ", " ", " - ")) if vary_sep else base_sep
         for piece, label in chunk:
             piece = case(piece)
             if label:
@@ -322,7 +459,7 @@ def main() -> None:
     bangla = sum(any("ঀ" <= c <= "৿" for c in e.text) for e in train) / len(train)
     print(f"examples containing any Bangla script: {bangla:.0%}\n")
 
-    for e in train[:10]:
+    for e in train[:12]:
         tokens = tokenize(normalize_digits(e.text))
         tags = to_bio(tokens, e.spans)
         print(e.text)

@@ -1,12 +1,14 @@
 """Rule-based baseline: regexes for structured fields, gazetteer lookup for names.
 
 This is what an engineer would write without ML. The model has to beat it to
-justify its complexity.
+justify its complexity. It is kept honest: when the generator learns a new
+keyword family, the regexes learn it too, otherwise the baseline would be a
+strawman and the model's gain would look bigger than it is.
 
 Fairness: the name vocabulary is built from the TRAINING postcode records only.
 The model never sees test-record names, so the baseline must not either.
 Known weaknesses are deliberate to leave in: exact-match names (no typo
-tolerance), no context for ambiguous names, and landmark/area boundaries that
+tolerance), no context for ambiguous names, and area/landmark boundaries that
 depend on punctuation.
 """
 
@@ -20,32 +22,46 @@ from thikana.text import Token, normalize_digits, tokenize
 
 _F = re.IGNORECASE
 _NUM = r"\d+[a-z]?(?:/\d+)?"
+_NO = r"(?:\.?\s*no\b\.?)?"      # optional "No" / "No." / ".No" after a keyword
+_SEP = r"\s*[#\-]?\s*"
 _BN = r"[ঀ-৿]"
 
-# Priority order: earlier patterns claim text first.
+# Priority order: earlier patterns claim text first. Label "O" claims text that is
+# deliberately NOT an entity (decision D10: Shop / Level).
 PATTERNS = (
     ("LANDMARK", re.compile(
-        r"\b(?:near|beside|opposite|behind)(?:\s+\w+){1,3}|(?:" + _BN + r"+\s+){1,3}এর\s+পাশে", _F)),
+        r"\b(?:near|beside|opposite(?: of)?|behind|adjacent to|next to|in front of|close to)"
+        r"(?:\s+\w[\w\-]*){1,4}"
+        r"|(?:" + _BN + r"[ঀ-৿\-]*\s+){1,4}(?:পাশে|সামনে|কাছে|পেছনে)", _F)),
+    ("O", re.compile(
+        r"\b(?:shop|level)" + _NO + _SEP + r"\d+|(?:দোকান|লেভেল)(?:\s+নং)?\s*\d+", _F)),
+    ("AREA", re.compile(  # decision D10: Ward is one AREA span
+        r"\bward" + _NO + _SEP + r"\d+|ওয়ার্ড(?:\s+নং)?\s*\d+", _F)),
     ("HOUSE", re.compile(
-        r"\b(?:house|holding|flat|h)\s*[#\-]?\s*" + _NUM
-        + r"|(?:বাসা|বাড়ি)(?:\s+নং)?\s*" + _NUM
+        r"\b(?:house|hse|holding|flat|apartment|apt|plot|h)" + _NO + _SEP + _NUM
+        + r"|(?:বাসা|বাড়ি|হোল্ডিং|ফ্ল্যাট|প্লট)(?:\s+নং)?[\s\-]*" + _NUM
         + r"|^\s*\d{1,3}(?:/\d+)?(?=\W)", _F)),
     ("ROAD", re.compile(
-        r"\b(?:road|rd|lane|r)\s*[#\-]?\s*\d+|(?:রোড|লেন)(?:\s+নং)?\s*\d+", _F)),
+        r"\b(?:road|rd|lane|ln|street|avenue|r)\.?" + _NO + _SEP + r"\d+"
+        + r"|(?:রোড|লেন)(?:\s+নং)?[\s\-]*\d+", _F)),
     ("BLOCK", re.compile(
-        r"\b(?:block|blk|sector)\s*-?\s*(?:[a-h]\b|\d+)|(?:ব্লক|সেক্টর)\s*[\wঀ-৿]+", _F)),
+        r"\b(?:block|blk|sector|section|phase)\s*[#\-]?\s*(?:[a-h]\b|\d+)"
+        r"|(?:ব্লক|সেক্টর|সেকশন)[\s#\-]*[\wঀ-৿]+", _F)),
     ("POSTCODE", re.compile(r"(?<!\d)\d{4}(?!\d)")),
 )
 
-# Words that introduce a name but are not part of it (decision D7).
-STOPWORDS = {"bangladesh", "বাংলাদেশ", "dist", "upazila", "thana", "p", "o", "po",
-             "জেলা", "উপজেলা", "থানা"}
+# Words that introduce a value but are not part of it (decision D7).
+STOPWORDS = {
+    "bangladesh", "বাংলাদেশ", "dist", "district", "zila", "upazila", "upazilla", "thana",
+    "vill", "village", "gram", "post", "office", "police", "station", "p", "o", "po",
+    "s", "ps", "জেলা", "উপজেলা", "থানা", "গ্রাম", "ডাকঘর", "পোস্ট",
+}
 
 
-def _snap(tokens: list[Token], start: int, end: int, label: str) -> Span | None:
+def _snap(tokens: list[Token], start: int, end: int) -> tuple[int, int] | None:
     """Widen a character range to whole tokens."""
     inside = [t for t in tokens if t.start < end and start < t.end]
-    return Span(inside[0].start, inside[-1].end, label) if inside else None
+    return (inside[0].start, inside[-1].end) if inside else None
 
 
 def _is_word(token: Token) -> bool:
@@ -81,19 +97,27 @@ class Baseline:
         spans: list[Span] = []
         covered = [False] * len(tokens)
 
+        def mark(start: int, end: int) -> None:
+            for i, t in enumerate(tokens):
+                if t.start < end and start < t.end:
+                    covered[i] = True
+
         def claim(span: Span) -> None:
             spans.append(span)
-            for i, t in enumerate(tokens):
-                if t.start < span.end and span.start < t.end:
-                    covered[i] = True
+            mark(span.start, span.end)
 
         for label, pattern in PATTERNS:
             for m in pattern.finditer(text):
-                span = _snap(tokens, m.start(), m.end(), label)
-                taken = span and any(covered[i] for i, t in enumerate(tokens)
-                                     if t.start < span.end and span.start < t.end)
-                if span and not taken:
-                    claim(span)
+                snapped = _snap(tokens, m.start(), m.end())
+                if not snapped:
+                    continue
+                start, end = snapped
+                if any(covered[i] for i, t in enumerate(tokens) if t.start < end and start < t.end):
+                    continue
+                if label == "O":  # deliberately not an entity (decision D10): cover, never label
+                    mark(start, end)
+                else:
+                    claim(Span(start, end, label))
 
         i, district_seen = 0, False
         while i < len(tokens):

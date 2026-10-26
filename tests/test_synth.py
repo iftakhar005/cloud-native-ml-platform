@@ -133,6 +133,92 @@ def test_a_place_name_hyphen_number_is_not_always_a_postcode(splits):
     assert table[("DISTRICT", "4 digits")]["POSTCODE"] > 0  # while 4 digits still can be
 
 
+@pytest.fixture(scope="module")
+def big(splits):
+    return generate(splits["train"], 4000, seed=7)
+
+
+def _surfaces(examples, label):
+    return [normalize_digits(s) for e in examples for s in e.surface(label)]
+
+
+def test_every_keyword_family_is_generated(big):
+    # regression: the first generators wrote only a handful of keywords, so
+    # "Plot 7" or "Section 6" was read as an AREA
+    families = {
+        "HOUSE": [r"^plot", r"^apartment", r"^apt", r"^hse", r"^h\.no", r"^house no",
+                  r"^holding", r"^flat"],
+        "ROAD": [r"^road no", r"^rd\.", r"^ln", r"^street", r"^avenue", r"^lane"],
+        "BLOCK": [r"^section", r"^phase", r"^sector", r"^blk", r"^block"],
+    }
+    for label, patterns in families.items():
+        found = _surfaces(big, label)
+        for pattern in patterns:
+            assert any(re.match(pattern, s, re.I) for s in found), (label, pattern)
+
+
+def test_decision_d7_introducers_appear_but_are_never_part_of_a_span(big):
+    anywhere = re.compile(r"(?:^|[ ,;\-])(?:vill|gram|p\.o|dist|zila|thana|p\.s)[:\-. ]", re.I)
+    starts = re.compile(r"^(?:vill|village|gram|p\.o|po|post|thana|p\.s|ps|upazila|upazilla|"
+                        r"dist|district|zila|গ্রাম|ডাকঘর|পোস্ট|থানা|উপজেলা|জেলা)[:\-. ]", re.I)
+    assert sum(bool(anywhere.search(e.text)) for e in big) > 100
+    for e in big:
+        for s in e.spans:
+            if s.label in ("AREA", "UPAZILA", "DISTRICT"):
+                assert not starts.match(e.text[s.start:s.end]), e.text
+
+
+def test_landmarks_are_diverse_and_their_boundaries_are_punctuated(big):
+    landmarks = _surfaces(big, "LANDMARK")
+    assert len(set(landmarks)) > 150  # a pattern, not 5 memorised names
+    leads = {l.split()[0].lower() for l in landmarks if l.isascii()}
+    assert {"near", "beside", "opposite", "behind", "adjacent", "next", "close", "in"} <= leads
+    assert any(re.search(r"[ঀ-৿](ের|র) (পাশে|সামনে|কাছে|পেছনে)$", l)
+               for l in landmarks)  # Bangla genitive attached to the last word
+    for e in big:
+        for s in e.spans:
+            if s.label == "LANDMARK":
+                before, after = e.text[:s.start].rstrip(), e.text[s.end:].lstrip()
+                assert before == "" or before[-1] in ",;-", e.text  # visible start
+                assert after == "" or after[0] in ",;-", e.text     # visible end
+
+
+def test_reversed_addresses_exist_and_never_carry_a_division(big):
+    def reversed_order(e):
+        labels = [s.label for s in e.spans]
+        return any(a in ("DISTRICT", "POSTCODE") and b in ("HOUSE", "ROAD", "BLOCK")
+                   for i, a in enumerate(labels) for b in labels[i + 1:])
+
+    rev = [e for e in big if reversed_order(e)]
+    assert len(rev) > 150
+    assert any(e.spans[0].label == "POSTCODE" for e in rev)
+    # D1's "first = district, second = division" has no meaning in reversed order
+    assert not any(e.surface("DIVISION") for e in rev)
+
+
+def test_decision_d10_shop_and_level_are_never_entities_and_ward_is_area(big):
+    shop = re.compile(r"\b(?:shop|level)\b|দোকান|লেভেল", re.I)
+    hits = 0
+    for e in big:
+        for m in shop.finditer(e.text):
+            hits += 1
+            assert not any(s.start < m.end() and m.start() < s.end for s in e.spans), e.text
+    assert hits > 100
+    wards = [a for a in _surfaces(big, "AREA") if re.match(r"(?:ward|ওয়ার্ড)", a, re.I)]
+    assert len(wards) > 50  # keyword AND number are inside the AREA span
+
+
+def test_district_division_pairs_and_lone_trailing_districts_are_both_common(big):
+    # regression for decision D1: a division used to follow a postcode almost
+    # every time, so "district, division" never sat directly together
+    adjacent = sum(a.label == "DISTRICT" and b.label == "DIVISION"
+                   for e in big for a, b in zip(e.spans, e.spans[1:]))
+    lone = sum(s.label == "DISTRICT" and i == len(e.spans) - 1 and i > 0
+               and e.spans[i - 1].label == "AREA"
+               for e in big for i, s in enumerate(e.spans))
+    assert adjacent > 200 and lone > 200
+
+
 def test_excluded_strings_never_reappear(splits):
     train = generate(splits["train"], 1000, seed=1)
     train_texts = {e.text for e in train}
