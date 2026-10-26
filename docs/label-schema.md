@@ -148,3 +148,22 @@ Method note: the "before" model was trained on the generator as of commit
 Caution: dev sets differ between generator versions, so only same-dev
 comparisons like the table above are valid; overall dev F1 fell 0.985 -> 0.981
 across retrains because the benchmark got harder, not the model worse.
+
+## Decisions added during Task 5 (accepted 2026-10-26)
+
+**D7 - Introducers are O (accepted; was "awaiting confirmation").** Words that
+introduce a value (`Dist:`, `District:`, `Zila`, `P.O:`, `Post:`, `Thana:`,
+`P.S`, `Upazila:`, `Vill:`, `Village:`, `Gram`, and Bangla `গ্রাম`, `ডাকঘর`,
+`থানা`, `জেলা`) are labelled O, including any `:` / `-` after them. The value
+that follows gets its normal entity label.
+
+**D10 - Shop and Level are O; Ward is AREA (accepted).**
+- `Shop 12`, `Shop No-12`, `Level 3`, `দোকান ১২`, `লেভেল ৩` are O: the keyword
+  AND the number. They are not forced into HOUSE. A new label is added only if
+  the product genuinely needs one.
+- `Ward 5`, `Ward No. 5`, `Ward-5`, `ওয়ার্ড ৫` are ONE AREA span, keyword and
+  number included. (My reading of "Ward can be AREA"; the keyword is part of the
+  span, as in `Road 5`.)
+- NOT covered by this decision, so deliberately absent from the generator and
+  the evaluation sets until decided: `Union Parishad Office` (and similar office
+  or building names) and `Floor` (a close cousin of `Level`).
