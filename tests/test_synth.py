@@ -7,7 +7,9 @@ import pytest
 from thikana.schema import ENTITY_TYPES
 from thikana.text import bio_to_spans, normalize_digits, normalize_token, tokenize, to_bio
 from thikana.training.audit_labels import hyphen_number_report
-from thikana.training.synth import URBAN_AREAS, build_places, generate, split_places
+from thikana.training.gazetteer import load_all
+from thikana.training.synth import (URBAN_AREAS, build_all_places, build_places,
+                                    build_upazila_places, generate, split_places)
 
 
 @pytest.fixture(scope="module")
@@ -275,3 +277,48 @@ def test_bangla_names_are_generated_in_both_keyboard_forms(big):
     texts = "".join(e.text for e in big)
     assert "\u09df" in texts                 # য় as one codepoint (the gazetteer's form)
     assert "\u09af\u09bc" in texts           # য় as two codepoints (NFC)
+
+
+# ---- training on EVERY gazetteer record -----------------------------------
+
+def _key(p):
+    return (p.district.lower(), normalize_token(p.upazila).lower())
+
+
+def test_upazila_only_places_cover_exactly_the_upazilas_the_postcode_file_lacks(places):
+    extra = build_upazila_places(places=places)
+    covered = {_key(p) for p in places if p.upazila_admin}
+    assert 150 < len(extra) < 300                     # about half of the table (230 of 492)
+    assert covered.isdisjoint(_key(p) for p in extra)  # never duplicates a postcode-covered one
+    assert len({_key(p) for p in extra}) == len(extra)
+    table = load_all()["upazilas"]
+    districts = dict(zip(load_all()["districts"]["id"], load_all()["districts"]["name"]))
+    in_table = {(districts[r.district_id].lower(), normalize_token(r.name.strip()).lower())
+                for r in table.itertuples()}
+    assert covered | {_key(p) for p in extra} == in_table  # together: the WHOLE table
+
+
+def test_upazila_only_places_are_internally_consistent_and_deterministic(places):
+    extra = build_upazila_places(places=places)
+    assert extra == build_upazila_places(places=places)
+    real_codes = {}
+    for p in places:
+        real_codes.setdefault(p.district, set()).add(p.postcode)
+    for p in extra:
+        assert p.upazila_admin and p.area == p.upazila     # post office named like the upazila (D11)
+        assert p.postcode in real_codes[p.district]         # borrowed from a real record, same district
+        assert p.upazila_bn
+
+
+def test_build_all_places_is_the_postcode_records_plus_the_extras(places):
+    everything = build_all_places()
+    assert everything[:len(places)] == places
+    assert len(everything) == len(places) + len(build_upazila_places(places=places))
+
+
+def test_most_table_upazilas_appear_in_a_large_sample():
+    # POSSIBLE is not the same as PRESENT: the pool covers all 492, but uniform draws
+    # leave many names unseen (see train_all.py); this only checks the pool works
+    names = {normalize_token(s).lower()
+             for e in generate(build_all_places(), 8000, seed=5) for s in e.surface("UPAZILA")}
+    assert len(names) > 330  # most of the 492 appear (and several are Bangla forms)

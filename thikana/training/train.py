@@ -26,6 +26,7 @@ from thikana.schema import ENTITY_TYPES
 from thikana.text import normalize_digits, normalize_token, tokenize, to_bio
 from thikana.training.baseline import Baseline
 from thikana.training.evaluate import REPORTS, paired_bootstrap, score
+from thikana.training.gazetteer import load_all
 from thikana.training.synth import DATASET_SEEDS, DATASET_SIZES, build_datasets
 
 MODELS = Path(__file__).resolve().parents[2] / "models"
@@ -44,6 +45,21 @@ def build_vocab(places) -> Vocab:
     return {kind: frozenset(normalize_token(t.text).lower()
                             for name in group if name for t in tokenize(name))
             for kind, group in names.items()}
+
+
+def build_vocab_full(frames: dict | None = None) -> Vocab:
+    """The vocabulary straight from the full reference TABLES (all 64 districts, 8
+    divisions and 494 upazilas), not from whichever records a split happened to
+    contain. What a deployed model would know."""
+    f = frames or load_all()
+
+    def tokens(*columns):
+        return frozenset(normalize_token(t.text).lower() for column in columns
+                         for name in column if name for t in tokenize(name.strip()))
+
+    return {"district": tokens(f["districts"]["name"], f["districts"]["bn_name"]),
+            "division": tokens(f["divisions"]["name"], f["divisions"]["bn_name"]),
+            "upazila": tokens(f["upazilas"]["name"], f["upazilas"]["bn_name"])}
 
 
 def train_model(examples, path: Path, vocab: Vocab | None = None,

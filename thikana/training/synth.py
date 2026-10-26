@@ -15,11 +15,12 @@ import random
 import re
 import sys
 import unicodedata
+import zlib
 from collections import defaultdict
 from dataclasses import dataclass
 
 from thikana.schema import Example, Span
-from thikana.text import normalize_digits, tokenize, to_bio
+from thikana.text import normalize_digits, normalize_token, tokenize, to_bio
 from thikana.training.gazetteer import load_all
 
 BN_DIGITS = str.maketrans("0123456789", "০১২৩৪৫৬৭৮৯")
@@ -152,6 +153,54 @@ def build_places(frames: dict | None = None) -> list[Place]:
             postcode=r.postCode,
         ))
     return places
+
+
+def build_upazila_places(frames: dict | None = None,
+                         places: list[Place] | None = None) -> list[Place]:
+    """Places for administrative upazilas that NO postcode record covers.
+
+    The upazila table and the postcode file are different files: 230 of the 492
+    upazilas match no postcode record, so the generator (which builds addresses
+    from postcode records) can never write them. Each gets a place whose post
+    office is named like the upazila (32% of real ones are) and whose postcode
+    is borrowed, deterministically, from a real record of the same district.
+    An AUGMENTATION, not observed data.
+    """
+    f = frames or load_all()
+    places = places if places is not None else build_places(f)
+    districts = f["districts"].set_index("id")
+    divisions = f["divisions"].set_index("id")
+    covered = {(p.district.lower(), normalize_token(p.upazila).lower())
+               for p in places if p.upazila_admin}
+    postcodes: dict[str, list[str]] = defaultdict(list)
+    for p in places:
+        postcodes[p.district].append(p.postcode)
+
+    extra = []
+    for r in f["upazilas"].itertuples():
+        d = districts.loc[r.district_id]
+        district = d["name"].strip()
+        name = r.name.strip()
+        key = (district.lower(), normalize_token(name).lower())
+        if key in covered:
+            continue
+        covered.add(key)  # the table lists a couple of names twice
+        pool = sorted(postcodes[district])
+        v = divisions.loc[d["division_id"]]
+        extra.append(Place(
+            area=name, upazila=name, upazila_bn=r.bn_name.strip(), upazila_admin=True,
+            district=district, district_bn=d["bn_name"].strip(),
+            division=v["name"].strip(), division_bn=v["bn_name"].strip(),
+            postcode=pool[zlib.crc32(name.encode("utf-8")) % len(pool)],
+        ))
+    return extra
+
+
+def build_all_places(frames: dict | None = None) -> list[Place]:
+    """Every postcode record PLUS a place for each upazila the postcode file lacks."""
+    f = frames or load_all()
+    places = build_places(f)
+    return places + build_upazila_places(f, places)
 
 
 def split_places(places, seed=13, fractions=(0.7, 0.15, 0.15)) -> dict[str, list[Place]]:

@@ -1,0 +1,42 @@
+{
+  "what": "models trained on EVERY gazetteer record; no held-out names, so synthetic dev numbers would be in-sample and are deliberately not reported",
+  "production_model": "crf_all_district_memory",
+  "postcode_records": 1349,
+  "upazila_only_places": 230,
+  "admin_upazilas_in_place_pool": 492,
+  "upazila_name_forms_appearing_in_examples": 475,
+  "upazila_name_forms_possible": 958,
+  "training_examples": 4000,
+  "hyperparams": {
+    "c1": 0.1,
+    "c2": 0.05,
+    "max_iterations": 150,
+    "feature.possible_transitions": true
+  },
+  "models": {
+    "crf_all_v1_surface_context": {
+      "train_seconds": 26.9,
+      "model_bytes": 508840,
+      "memory": false,
+      "vocab_kinds": []
+    },
+    "crf_all_district_memory": {
+      "train_seconds": 30.7,
+      "model_bytes": 457768,
+      "memory": true,
+      "vocab_kinds": [
+        "district"
+      ]
+    },
+    "crf_all_gazetteer": {
+      "train_seconds": 18.6,
+      "model_bytes": 393724,
+      "memory": false,
+      "vocab_kinds": [
+        "district",
+        "division",
+        "upazila"
+      ]
+    }
+  }
+}
