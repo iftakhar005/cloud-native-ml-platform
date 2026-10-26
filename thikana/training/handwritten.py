@@ -15,7 +15,12 @@ from thikana.schema import Example, Span
 from thikana.text import normalize_digits
 from thikana.training.gazetteer import load_all
 
-PATH = Path(__file__).resolve().parents[2] / "data" / "handwritten" / "addresses_v1.txt"
+DATA_DIR = Path(__file__).resolve().parents[2] / "data" / "handwritten"
+PATH = DATA_DIR / "addresses_v1.txt"
+
+
+def path_for(version: str) -> Path:
+    return DATA_DIR / f"addresses_{version}.txt"
 _MARKUP = re.compile(r"\{([A-Z]+)\|([^{}|]+)\}")
 SEPARATOR = " ::: "
 
@@ -28,6 +33,7 @@ class Item:
 
 
 def parse_markup(annotated: str) -> Example:
+    annotated = annotated.replace("\\n", "\n")  # a literal \n in the file is a line break
     text, spans, last = "", [], 0
     for m in _MARKUP.finditer(annotated):
         text += annotated[last:m.start()]
@@ -85,16 +91,18 @@ def main() -> None:
     from collections import Counter
 
     sys.stdout.reconfigure(encoding="utf-8")
-    items, variants = load()
-    labels = Counter(s.label for i in items for s in i.example.spans)
-    styles = Counter(i.style for i in items)
-    print(f"{len(items)} hand-written addresses, {sum(labels.values())} gold entities")
-    print("by label:", dict(sorted(labels.items())))
-    print("by style:", dict(styles))
-    problems = audit(items, variants)
-    print(f"\ngold-label audit: {len(problems)} problem(s)")
-    for problem in problems:
-        print("  -", problem)
+    for path in sorted(DATA_DIR.glob("addresses_v*.txt")):
+        items, variants = load(path)
+        labels = Counter(s.label for i in items for s in i.example.spans)
+        styles = Counter(i.style for i in items)
+        print(f"== {path.name}: {len(items)} addresses, {sum(labels.values())} gold entities")
+        print("by label:", dict(sorted(labels.items())))
+        print("by style:", dict(styles))
+        problems = audit(items, variants)
+        print(f"gold-label audit: {len(problems)} problem(s)")
+        for problem in problems:
+            print("  -", problem)
+        print()
 
 
 if __name__ == "__main__":

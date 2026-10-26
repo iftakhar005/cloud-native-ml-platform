@@ -1,0 +1,112 @@
+# HAND-WRITTEN evaluation set v2. NOT REAL ADDRESSES. Written by an AI assistant,
+# AFTER the generator was widened for the v1 failure groups and BEFORE the retrained
+# model was run on it. Labels follow docs/label-schema.md (D1-D10).
+#
+# Style tags:  T-*  = TARGETED: new instances of a group the generator was widened for
+#              F-*  = FRESH:    constructs deliberately NOT trained for
+# Scored once; never used to tune. See README.md here.
+#
+# Format:  style ::: annotated address      annotation = {LABEL|surface text}
+# A literal \n is a line break. Text outside braces is O (separators, introducer
+# words, Shop / Level lines, brackets, "Bangladesh").
+#
+#variants: ctg, dhk, dhakaa, ময়মনসিংহ, কাউনিয়া, বানাড়িপারা
+
+# ---- T-keyword: keyword families (Plot, Apartment, Hse, Ln, Street, Avenue, Section, Phase, ...)
+T-keyword ::: {HOUSE|Plot 5}, {ROAD|Road No-8}, {BLOCK|Section 11}, {AREA|Mirpur}, {DISTRICT|Dhaka}-{POSTCODE|1216}
+T-keyword ::: {HOUSE|Apartment 9D}, {ROAD|Street 14}, {AREA|Uttara}, {DISTRICT|Dhaka}
+T-keyword ::: {HOUSE|Hse 40}, {ROAD|Ln 6}, {BLOCK|Phase 3}, {AREA|Bashundhara R/A}, {DISTRICT|Dhaka}-{POSTCODE|1229}
+T-keyword ::: {HOUSE|Holding No. 77}, {ROAD|Avenue 3}, {AREA|Halishahar}, {DISTRICT|Chattogram}
+T-keyword ::: {HOUSE|Plot No-18}, {ROAD|Rd. 4}, {BLOCK|Block D}, {AREA|Banani}, {DISTRICT|Dhaka} {POSTCODE|1213}
+T-keyword ::: {HOUSE|প্লট ১৫}, {ROAD|লেন ৩}, {BLOCK|সেকশন ৫}, {AREA|মিরপুর}, {DISTRICT|ঢাকা}
+T-keyword ::: {HOUSE|হোল্ডিং নং ৯০}, {ROAD|রোড নং ২}, {AREA|চকবাজার}, {DISTRICT|চট্টগ্রাম}-{POSTCODE|৪২০৩}
+T-keyword ::: {HOUSE|H-14}, {ROAD|R#2}, {BLOCK|Sector-9}, {AREA|Uttara}, {DISTRICT|Dhaka}-{POSTCODE|1230}
+
+# ---- T-village: form-style introducers (Vill, Village, Gram, P.O, Post Office, Thana, P.S, Dist, Zila, ...)
+T-village ::: Vill: {AREA|Shibpur}, P.O: {AREA|Daulatpur}, P.S: {UPAZILA|Dhamrai}, Dist: {DISTRICT|Dhaka}
+T-village ::: Village: {AREA|Mohanpur}, Post Office: {AREA|Kazipur}, Thana: {UPAZILA|Sripur}, District: {DISTRICT|Gazipur}-{POSTCODE|1740}
+T-village ::: Gram- {AREA|Bhabanipur}, Dak- {AREA|Madhupur}, Upazilla- {UPAZILA|Madhupur}, Zila- {DISTRICT|Tangail}
+T-village ::: Vill. {AREA|Charpara}, PO. {AREA|Trishal}, PS. {UPAZILA|Trishal}, Dist. {DISTRICT|Mymensingh}
+T-village ::: গ্রাম: {AREA|কাঁঠালবাড়ি}, ডাকঘর: {AREA|রহিমপুর}, উপজেলা: {UPAZILA|সাভার}, জেলা: {DISTRICT|ঢাকা}
+T-village ::: Village: {AREA|Rajapur}, Upazila: {UPAZILA|Keshabpur}, District: {DISTRICT|Jashore}-{POSTCODE|7450}
+T-village ::: {AREA|Bahadurpur}, Thana: {UPAZILA|Gabtali}, Dist: {DISTRICT|Bogura}
+T-village ::: Vill: {AREA|Chandrapur}, P.O: {AREA|Chandrapur}, Upazila: {UPAZILA|Kaunia}, District: {DISTRICT|Rangpur}-{POSTCODE|5430}
+
+# ---- T-landmark: composed landmarks, including ones named after the address's own area
+T-landmark ::: {HOUSE|House 31}, {ROAD|Road 6}, {AREA|Lalmatia}, {LANDMARK|opposite Lalmatia Girls College}, {DISTRICT|Dhaka}-{POSTCODE|1207}
+T-landmark ::: {HOUSE|Flat 7A}, {AREA|Uttara}, {LANDMARK|next to Uttara Sector-7 Park}, {DISTRICT|Dhaka}
+T-landmark ::: {LANDMARK|in front of Khilgaon Bazar}, {AREA|Khilgaon}, {DISTRICT|Dhaka}
+T-landmark ::: {HOUSE|House 9}, {AREA|Zindabazar}, {LANDMARK|beside Zindabazar Jame Masjid}, {DISTRICT|Sylhet}
+T-landmark ::: {HOUSE|House 18}, {AREA|Khalishpur}, {LANDMARK|adjacent to Khalishpur Railway Station}, {DISTRICT|Khulna}
+T-landmark ::: {LANDMARK|ফার্মগেট ওভারব্রিজের সামনে}, {AREA|তেজগাঁও}, {DISTRICT|ঢাকা}
+T-landmark ::: {HOUSE|বাড়ি ৭}, {AREA|শাহবাগ}, {LANDMARK|জাতীয় যাদুঘরের পাশে}, {DISTRICT|ঢাকা}
+
+# ---- T-order: postcode or district written first
+T-order ::: {DISTRICT|Dhaka}-{POSTCODE|1209}, {AREA|Dhanmondi 27}, {ROAD|Road 9}, {HOUSE|House 33}
+T-order ::: {POSTCODE|1100}, {DISTRICT|Dhaka}, {AREA|Tikatuli}, {ROAD|Lane 2}, {HOUSE|House 14}
+T-order ::: {DISTRICT|Chattogram} {POSTCODE|4000}, {AREA|Kotwali}, {ROAD|Road 1}, {HOUSE|Holding 45}
+T-order ::: {POSTCODE|3100}, {DISTRICT|Sylhet}, {AREA|Amberkhana}, {HOUSE|House 8}
+T-order ::: {DISTRICT|Rajshahi}-{POSTCODE|6000}, {AREA|Kazla}, {ROAD|Road 4}
+T-order ::: {DISTRICT|Dhaka}, {AREA|Mirpur-2}, {BLOCK|Block C}, {ROAD|Road 6}, {HOUSE|House 22}
+
+# ---- T-d1: a lone trailing district, and district + division pairs (decision D1)
+T-d1 ::: {HOUSE|House 7}, {ROAD|Road 3}, {AREA|Tejgaon}, {DISTRICT|Dhaka}
+T-d1 ::: {AREA|Rampura}, {DISTRICT|Dhaka}
+T-d1 ::: {AREA|Gollamari}, {DISTRICT|Khulna}
+T-d1 ::: {HOUSE|House 12}, {AREA|Boalia}, {DISTRICT|Rajshahi}
+T-d1 ::: {UPAZILA|Savar}, {DISTRICT|Dhaka}, {DIVISION|Dhaka}
+T-d1 ::: {AREA|Kamalapur}, {DISTRICT|Cumilla}, {DIVISION|Chattogram}
+T-d1 ::: {UPAZILA|Mirsharai}, {DISTRICT|Chattogram}, {DIVISION|Chattogram}
+T-d1 ::: {UPAZILA|সাভার}, {DISTRICT|ঢাকা}, {DIVISION|ঢাকা}
+T-d1 ::: {UPAZILA|দাউদকান্দি}, {DISTRICT|কুমিল্লা}, {DIVISION|চট্টগ্রাম}
+
+# ---- T-d10: Shop / Level are O, Ward is AREA
+T-d10 ::: {HOUSE|House 5}, Shop 14, {AREA|Gulshan-1}, {DISTRICT|Dhaka}-{POSTCODE|1212}
+T-d10 ::: Level 4, {HOUSE|House 20}, {ROAD|Road 7}, {AREA|Banani}, {DISTRICT|Dhaka}
+T-d10 ::: Shop No-6, {AREA|New Market}, {DISTRICT|Dhaka}-{POSTCODE|1205}
+T-d10 ::: Shop No. 33, Level 2, {AREA|Mirpur-10}, {DISTRICT|Dhaka}
+T-d10 ::: {AREA|Ward 7}, {UPAZILA|Savar}, {DISTRICT|Dhaka}
+T-d10 ::: {AREA|Ward No. 3}, {AREA|Kalikapur}, {UPAZILA|Dohar}, {DISTRICT|Dhaka}
+T-d10 ::: দোকান নং ৯, {AREA|গুলিস্তান}, {DISTRICT|ঢাকা}
+T-d10 ::: {AREA|ওয়ার্ড ৪}, {UPAZILA|সাভার}, {DISTRICT|ঢাকা}
+
+# ---- F-punct: punctuation and layout the generator never produces
+F-punct ::: {HOUSE|House: 12}, {ROAD|Road: 5}, {AREA|Banani}, {DISTRICT|Dhaka}
+F-punct ::: {HOUSE|House 8}\n{ROAD|Road 2}\n{AREA|Gulshan-2}\n{DISTRICT|Dhaka}-{POSTCODE|1212}
+F-punct ::: {AREA|Mirpur-10} ({LANDMARK|near Metro Station}), {DISTRICT|Dhaka}
+F-punct ::: {HOUSE|House 52}, {ROAD|Road 11}; {AREA|Baridhara}; {DISTRICT|Dhaka} - {POSTCODE|1212}
+F-punct ::: {HOUSE|Flat: 4B}, {HOUSE|House: 17}, {ROAD|Road: 3}, {AREA|Uttara}, {BLOCK|Sector: 6}, {DISTRICT|Dhaka}
+F-punct ::: [ {HOUSE|House 3}, {AREA|Dhanmondi}, {DISTRICT|Dhaka} ]
+F-punct ::: {HOUSE|House 25} / {ROAD|Road 4} / {AREA|Banani} / {DISTRICT|Dhaka}
+F-punct ::: {HOUSE|House 14} | {ROAD|Road 5} | {AREA|Mirpur-6} | {DISTRICT|Dhaka}
+
+# ---- F-abbrev: informal district abbreviations
+F-abbrev ::: {HOUSE|House 6}, {ROAD|Road 2}, {AREA|Agrabad}, {DISTRICT|Ctg}-{POSTCODE|4100}
+F-abbrev ::: {AREA|Mirpur-1}, {DISTRICT|Dhk}
+
+# ---- F-short: very short or incomplete addresses
+F-short ::: {DISTRICT|Sylhet}
+F-short ::: {AREA|Gulshan}, {POSTCODE|1212}
+F-short ::: {HOUSE|House 5}, {ROAD|Road 3}
+F-short ::: {UPAZILA|Savar}, {DISTRICT|Dhaka}-{POSTCODE|1340}
+
+# ---- F-place: area types and names the generator has no examples of
+F-place ::: {AREA|Dhaka Cantonment}, {DISTRICT|Dhaka}-{POSTCODE|1206}
+F-place ::: {HOUSE|House 11}, {ROAD|Road 8}, {AREA|Baridhara DOHS}, {DISTRICT|Dhaka}
+F-place ::: {AREA|Banani R/A}, {DISTRICT|Dhaka}
+F-place ::: {HOUSE|House 40}, {ROAD|Road 12}, {AREA|Mirpur DOHS}, {DISTRICT|Dhaka}-{POSTCODE|1216}
+F-place ::: {HOUSE|Plot 6}, {BLOCK|Block F}, {AREA|Bashundhara R/A}, {AREA|Khilkhet}, {DISTRICT|Dhaka}
+F-place ::: {AREA|Motijheel C/A}, {DISTRICT|Dhaka}-{POSTCODE|1000}
+
+# ---- F-other: country first, uppercase, an unseen Bangla connector, a heavier typo
+F-other ::: Bangladesh, {DISTRICT|Dhaka}, {AREA|Banani}
+F-other ::: {HOUSE|HOUSE 7}, {ROAD|ROAD 3}, {AREA|DHANMONDI}, {DISTRICT|DHAKA}-{POSTCODE|1205}
+F-other ::: {HOUSE|House No 9}, {ROAD|Road No 3}, {AREA|Wari}, {DISTRICT|Dhaka} {POSTCODE|1203}
+F-other ::: {HOUSE|বাড়ি নম্বর ১২}, {ROAD|রোড নম্বর ৫}, {AREA|বনানী}, {DISTRICT|ঢাকা}
+F-other ::: {HOUSE|House 12}, {ROAD|Road 4}, {AREA|Uttraa}, {DISTRICT|Dhakaa}-{POSTCODE|1230}
+
+# ---- F-unicode: Bangla typed in NFC form (য় as two codepoints); the gazetteer stores the
+# precomposed form, so these names look identical on screen but are different strings.
+F-unicode ::: গ্রাম: {AREA|কাঁঠালবাড়ি}, ডাকঘর: {AREA|মুক্তাগাছা}, উপজেলা: {UPAZILA|মুক্তাগাছা}, জেলা: {DISTRICT|ময়মনসিংহ}
+F-unicode ::: {UPAZILA|কাউনিয়া}, {DISTRICT|রংপুর}, {DIVISION|রংপুর}
+F-unicode ::: {UPAZILA|বানাড়িপারা}, {DISTRICT|Barishal}

@@ -2,7 +2,10 @@ import pytest
 
 from thikana.schema import ENTITY_TYPES
 from thikana.text import bio_to_spans, normalize_digits, tokenize, to_bio
-from thikana.training.handwritten import Item, audit, load, parse_markup
+import unicodedata
+
+from thikana.training.gazetteer import load_all
+from thikana.training.handwritten import Item, audit, load, parse_markup, path_for
 
 
 def test_markup_becomes_plain_text_and_character_spans():
@@ -55,3 +58,46 @@ def test_declared_variants_are_the_only_non_gazetteer_names():
     used = {normalize_digits(i.example.text[s.start:s.end]).lower()
             for i in items for s in i.example.spans if s.label == "DISTRICT"}
     assert variants <= used  # a declared variant that is never used is a stale declaration
+
+
+def test_a_literal_backslash_n_becomes_a_real_line_break():
+    example = parse_markup(r"{HOUSE|House 8}\n{ROAD|Road 2}\n{AREA|Banani}")
+    assert example.text == "House 8\nRoad 2\nBanani"
+    assert example.surface("ROAD") == ["Road 2"]
+    tokens = tokenize(example.text)
+    assert [t.text for t in tokens] == ["House", "8", "Road", "2", "Banani"]
+
+
+# ---- v2: written after the generator was widened, scored once -------------
+
+def test_v2_loads_audits_clean_and_is_tagged_targeted_or_fresh():
+    items, variants = load(path_for("v2"))
+    assert len(items) >= 70
+    assert audit(items, variants) == []
+    assert {i.style[:2] for i in items} == {"T-", "F-"}
+    assert {s.label for i in items for s in i.example.spans} == set(ENTITY_TYPES)
+
+
+def test_v2_shares_no_address_with_the_spent_v1_set():
+    v1 = {i.example.text for i in load()[0]}
+    v2 = {i.example.text for i in load(path_for("v2"))[0]}
+    assert v1.isdisjoint(v2)
+
+
+def test_v2_unicode_items_use_nfc_while_the_gazetteer_does_not():
+    items, _ = load(path_for("v2"))
+    unicode_items = [i for i in items if i.style == "F-unicode"]
+    assert len(unicode_items) == 3
+    for item in unicode_items:
+        assert unicodedata.normalize("NFC", item.example.text) == item.example.text
+    # the whole problem: the gazetteer stores the precomposed, non-NFC form
+    names = [n.strip() for n in load_all()["upazilas"]["bn_name"]]
+    assert sum(unicodedata.normalize("NFC", n) != n for n in names) > 100
+
+
+def test_every_v2_gold_span_lands_on_token_boundaries():
+    items, _ = load(path_for("v2"))
+    for item in items:
+        tokens = tokenize(normalize_digits(item.example.text))
+        tags = to_bio(tokens, item.example.spans)
+        assert bio_to_spans(tokens, tags) == list(item.example.spans), item.example.text
