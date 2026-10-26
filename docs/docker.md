@@ -110,14 +110,20 @@ Kubernetes requests and limits (to be re-measured under load).
 
 ## Limits you should know
 
-- **Not vulnerability-scanned yet.** That is a CI step (Trivy), not done here.
+- **Vulnerabilities:** scanned with Trivy; results and the gate policy are in
+  `docs/ci.md`. The short version: no findings in the 16 packages this project installs;
+  44 HIGH findings, none with a fix available, all in the Debian base image.
 - **The base image is not minimal.** It has a shell, `apt` and `pip`. A distroless base
   would remove them, at the cost of debuggability, and the `python-crfsuite` wheel is
   built for glibc so Alpine is not an option.
 - **`latest` is a convenience tag.** Anything that must be reproducible should use the
   git-sha tag.
 - **The model is not in git.** `models/` is gitignored, so CI must run `train_all` before
-  `docker build`. Training is deterministic: retraining produced byte-identical files.
+  `docker build`. Retraining on the *same machine* produced byte-identical files, but
+  **Windows and Linux do not**: the Linux-trained `.crfsuite` has a different SHA-256 (so
+  a different `model_version`) while giving identical predictions on all 278 hand-written
+  addresses. The image CI publishes therefore contains a different file from your local
+  one; `docs/ci.md` explains how that is checked.
 - **Updating the base image:** `docker pull python:3.12-slim`, read the new digest with
   `docker image inspect python:3.12-slim --format "{{index .RepoDigests 0}}"`, edit the
   `ARG PYTHON_IMAGE` line, rebuild, and run the tests.
