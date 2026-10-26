@@ -32,6 +32,17 @@ def main() -> None:
         print(f"  {name}: {bad} of {len(frame)}")
     print("  postcodes: no Bangla names exist at all")
 
+    print("\nstray leading/trailing whitespace in names:")
+    for name, frame in (("divisions", divisions), ("districts", districts),
+                        ("upazilas", upazilas), ("postcodes", postcodes)):
+        for column in frame.columns:
+            if column in ("lat", "long", "id", "division_id", "district_id"):
+                continue
+            values = frame[column].astype(str)
+            dirty = int((values != values.str.strip()).sum())
+            if dirty:
+                print(f"  {name}.{column}: {dirty} of {len(frame)}")
+
     known = set(zip(upazilas["district_id"], lower(upazilas["name"])))
     in_table = [
         (r.district_id, r.upazila.strip().lower()) in known for r in postcodes.itertuples()

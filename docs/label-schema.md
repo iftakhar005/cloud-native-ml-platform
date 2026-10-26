@@ -66,3 +66,11 @@ Matching to the gazetteer is a separate, later step.
 ## Worked examples (to be completed from real addresses)
 
 <!-- Five real addresses, every token labelled. Do this by hand. -->
+
+## Clarification added during Task 2 (D7 - awaiting confirmation)
+
+**D7 - Introducer words are O.** Words that merely introduce an administrative
+name ("Dist:", "Upazila:", "P.O:", "জেলা:") are labelled O; only the name itself
+is the entity. This differs from HOUSE / ROAD / BLOCK, where the keyword is
+PART of the span ("Road 5", "বাসা ১২") as in the examples above. The generator
+already follows this rule, so confirm it or tell me to change it.
