@@ -1,0 +1,19 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# Secrets - never commit real values
+.env
+
+# Build outputs: rebuilt from code + data
+models/
+
+# Real addresses contain personal data until anonymised
+data/real/*
+!data/real/README.md
+
+# OS
+Thumbs.db
