@@ -74,3 +74,36 @@ name ("Dist:", "Upazila:", "P.O:", "জেলা:") are labelled O; only the nam
 is the entity. This differs from HOUSE / ROAD / BLOCK, where the keyword is
 PART of the span ("Road 5", "বাসা ১২") as in the examples above. The generator
 already follows this rule, so confirm it or tell me to change it.
+
+## Decision added during Task 3
+
+**D8 - UPAZILA means an administrative upazila (accepted 2026-10-26).** Only
+names in the 494-row upazilas table are UPAZILA. Any other thana or
+neighbourhood name is AREA. Motivation: 7 of 15 well-known Dhaka
+neighbourhoods are also listed as "upazila" in the postcode file, so one
+string carried two labels. Note a name can still legitimately be both:
+"Mohammadpur" is a Dhaka neighbourhood AND an upazila of Magura.
+
+## Open questions raised by the brittleness probes (NOT yet decisions)
+
+Hand-written probe addresses (thikana/training/probe.py) showed the model
+forcing real-world constructs into the nearest label. These need a schema
+decision before more training data is generated:
+
+**D9 - Numbered areas.** "Mirpur-10", "Dhanmondi 27", "Uttara Sector 7".
+Proposed: the number is PART of the AREA name, so "Mirpur-10" is one AREA
+span. Currently the generator never produces these, and the model labelled the
+"10" in "Mirpur-10" as a POSTCODE.
+
+**D10 - Constructs with no label.** "Level 3", "Ward 5", "Shop 12", "Union
+Parishad Office". Options: (a) add labels, (b) map to existing ones (Shop -> HOUSE,
+Level -> HOUSE, Ward -> AREA), (c) label O and accept the information is
+dropped. Needs your call.
+
+## Measured results so far (synthetic dev only; says nothing about real addresses)
+
+- Context-free ceiling for name strings: 90.0% (a pure lookup cannot exceed it).
+- Rule baseline micro F1 0.880; CRF v1 0.985; CRF v2 (+gazetteer features) 0.988.
+- v1 minus baseline: +0.104, 95% interval [+0.090, +0.118].
+- v2 minus v1: +0.003, 95% interval [-0.002, +0.008] -> NOT distinguishable
+  from zero; v1 kept (simpler, no extra artifact).

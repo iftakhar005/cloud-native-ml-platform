@@ -8,6 +8,7 @@ for getting most of "Dhaka Cantt." right.
 from __future__ import annotations
 
 import json
+import random
 import sys
 from collections import Counter
 from pathlib import Path
@@ -45,6 +46,40 @@ def score(gold: list[Example], predicted: list[list[Span]]) -> dict:
         "micro": _prf(sum(tp.values()), sum(fp.values()), sum(fn.values())),
         "macro_f1": sum(scored) / len(scored) if scored else 0.0,
     }
+
+
+def _counts(example: Example, pred: list[Span]) -> tuple[int, int, int]:
+    want = {(s.start, s.end, s.label) for s in example.spans}
+    got = {(s.start, s.end, s.label) for s in pred}
+    tp = len(want & got)
+    return tp, len(got) - tp, len(want) - tp
+
+
+def _micro_f1(counts) -> float:
+    tp = sum(c[0] for c in counts)
+    fp = sum(c[1] for c in counts)
+    fn = sum(c[2] for c in counts)
+    return 2 * tp / (2 * tp + fp + fn) if tp else 0.0
+
+
+def paired_bootstrap(gold, pred_a, pred_b, resamples: int = 1000, seed: int = 0) -> dict:
+    """95% interval for micro-F1(b) - micro-F1(a), resampling whole ADDRESSES.
+
+    Both systems are scored on the same resampled addresses (paired), so the
+    interval reflects the difference itself, not the difficulty of the sample.
+    If the interval contains 0, do not claim one system is better.
+    """
+    a = [_counts(g, p) for g, p in zip(gold, pred_a, strict=True)]
+    b = [_counts(g, p) for g, p in zip(gold, pred_b, strict=True)]
+    rng = random.Random(seed)
+    n = len(gold)
+    diffs = []
+    for _ in range(resamples):
+        idx = [rng.randrange(n) for _ in range(n)]
+        diffs.append(_micro_f1([b[i] for i in idx]) - _micro_f1([a[i] for i in idx]))
+    diffs.sort()
+    return {"mean": sum(diffs) / resamples, "low": diffs[int(0.025 * resamples)],
+            "high": diffs[int(0.975 * resamples) - 1], "resamples": resamples}
 
 
 def has_bangla(text: str) -> bool:
