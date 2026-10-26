@@ -65,6 +65,15 @@ def test_postcode_spans_are_four_digits_once_normalised(splits):
             assert re.fullmatch(r"\d{4}", normalize_digits(surface)), example.text
 
 
+def test_a_division_never_appears_without_a_district(splits):
+    # regression for decision D1: a lone "Dhaka" is a DISTRICT, never a DIVISION.
+    # The first version dropped the district but kept the division in ~1.6% of
+    # addresses, producing labels that contradicted the schema.
+    for example in generate(splits["train"], 3000, seed=1):
+        if example.surface("DIVISION"):
+            assert example.surface("DISTRICT"), example.text
+
+
 def test_excluded_strings_never_reappear(splits):
     train = generate(splits["train"], 1000, seed=1)
     train_texts = {e.text for e in train}

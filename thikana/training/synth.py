@@ -213,7 +213,10 @@ def _one(rng, places, by_district, urban_pool) -> Example:
     if district_chunk:
         chunks.append(district_chunk)
 
-    if rng.random() < 0.20:  # decision D1: DISTRICT first, DIVISION after
+    # Decision D1: DISTRICT first, DIVISION after. A lone occurrence of a name
+    # that is both is a DISTRICT, so a division is only emitted beside a district.
+    has_district = any(label == "DISTRICT" for _, label in district_chunk)
+    if has_district and rng.random() < 0.20:
         chunks.append([(name(place.division, place.division_bn), "DIVISION")])
     if rng.random() < 0.10:
         chunks.append([("বাংলাদেশ" if mode == "bn" else "Bangladesh", None)])
@@ -254,6 +257,24 @@ def generate(places, n: int, seed: int, exclude=frozenset()) -> list[Example]:
             if len(out) == n:
                 return out
     raise RuntimeError(f"could only produce {len(out)} of {n} unique examples")
+
+
+DATASET_SIZES = {"train": 4000, "dev": 600, "test": 600}
+DATASET_SEEDS = {"train": 1, "dev": 2, "test": 3}
+
+
+def build_datasets(split_seed: int = 13) -> tuple[dict[str, list[Place]], dict[str, list[Example]]]:
+    """The one canonical train/dev/test construction. Everything is scored on this.
+
+    dev and test never repeat a string that train contains (nor each other).
+    """
+    splits = split_places(build_places(), seed=split_seed)
+    data, seen = {}, set()
+    for name in ("train", "dev", "test"):
+        data[name] = generate(splits[name], DATASET_SIZES[name],
+                              DATASET_SEEDS[name], exclude=frozenset(seen))
+        seen |= {e.text for e in data[name]}
+    return splits, data
 
 
 def main() -> None:
