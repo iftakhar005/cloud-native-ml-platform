@@ -1,10 +1,11 @@
 import re
 from collections import Counter
+from difflib import SequenceMatcher
 
 import pytest
 
 from thikana.schema import ENTITY_TYPES
-from thikana.text import bio_to_spans, normalize_digits, tokenize, to_bio
+from thikana.text import bio_to_spans, normalize_digits, normalize_token, tokenize, to_bio
 from thikana.training.audit_labels import hyphen_number_report
 from thikana.training.synth import URBAN_AREAS, build_places, generate, split_places
 
@@ -225,3 +226,52 @@ def test_excluded_strings_never_reappear(splits):
     test = generate(splits["test"], 400, seed=3, exclude=train_texts)
     assert train_texts.isdisjoint(e.text for e in test)
     assert len({e.text for e in test}) == len(test)  # unique within the split too
+
+
+# ---- fixes from the v2 error analysis ---------------------------------------
+
+def test_upazila_first_addresses_are_common_enough_to_learn(big):
+    # before: 35 of 4000 (0.9%) began with an upazila, so "Savar, Dhaka" read as AREA
+    first = sum(e.spans[0].label == "UPAZILA" for e in big)
+    assert first > 100
+
+
+def test_decision_d11_a_name_shared_by_post_office_and_upazila(places):
+    # Amtali: the post office and the upazila (Barguna) have the same name
+    amtali = [p for p in places if p.area == "Amtali" and p.upazila_admin]
+    assert amtali
+    names = {amtali[0].upazila.lower(), normalize_token(amtali[0].upazila_bn).lower()}
+
+    def is_the_name(surface):  # fuzzy: the generator also writes typos ("AMATLI")
+        s = normalize_token(surface).lower()
+        if any(ch.isdigit() for ch in s):  # "Amtali-6" is a numbered post office: stays AREA
+            return False
+        return any(SequenceMatcher(None, s, n).ratio() >= 0.8 for n in names)
+
+    # form-style addresses carry introducers that mark each role explicitly
+    introducer = re.compile(r"[:]|Vill|Gram|P\.?O|Post|Thana|P\.?S|Dist|Zila|"
+                            r"গ্রাম|ডাকঘর|থানা|জেলা|পোস্ট|উপজেলা", re.I)
+    single = both = lone = 0
+    for e in generate(amtali, 800, seed=3):
+        if introducer.search(e.text):
+            continue
+        named = [s for s in e.spans if s.label in ("AREA", "UPAZILA")
+                 and is_the_name(e.text[s.start:s.end])]
+        if len(named) == 1:
+            single += 1
+            lone += len(e.spans) == 1
+            assert named[0].label == "UPAZILA", e.text   # once -> the upazila
+        elif len(named) == 2:
+            both += 1
+            reversed_order = any(s.label in ("DISTRICT", "POSTCODE") and s.start < named[0].start
+                                 for s in e.spans)
+            expected = ["UPAZILA", "AREA"] if reversed_order else ["AREA", "UPAZILA"]
+            assert [s.label for s in named] == expected, e.text  # hierarchy decides in reversed order
+    assert single > 20 and both > 5
+    assert lone >= 1  # regression: the "never an empty address" fallback skipped D11
+
+
+def test_bangla_names_are_generated_in_both_keyboard_forms(big):
+    texts = "".join(e.text for e in big)
+    assert "\u09df" in texts                 # য় as one codepoint (the gazetteer's form)
+    assert "\u09af\u09bc" in texts           # য় as two codepoints (NFC)

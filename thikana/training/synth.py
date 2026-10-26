@@ -14,6 +14,7 @@ from __future__ import annotations
 import random
 import re
 import sys
+import unicodedata
 from collections import defaultdict
 from dataclasses import dataclass
 
@@ -190,6 +191,16 @@ def _pick_script(mode: str, rng: random.Random) -> bool:
     return mode == "bn" or (mode == "mixed" and rng.random() < 0.5)
 
 
+def _keyboard_form(text: str, rng: random.Random) -> str:
+    """Half the time, the form a different keyboard would type.
+
+    The gazetteer stores য় ড় ঢ় as single precomposed codepoints; NFC splits
+    them in two. Both look identical. Spans are computed from the finished
+    pieces, so a change of length here cannot shift them.
+    """
+    return unicodedata.normalize("NFC", text) if rng.random() < 0.5 else text
+
+
 def _digits(text: str, bangla: bool, rng: random.Random) -> str:
     return text.translate(BN_DIGITS) if bangla and rng.random() < 0.7 else text
 
@@ -306,7 +317,7 @@ def _one(rng, places, by_district, urban_pool) -> Example:
     def name(en, bn):
         """Surface form of a name field, in Bangla if possible and chosen."""
         if bn is not None and _pick_script(mode, rng):
-            return bn
+            return _keyboard_form(bn, rng)
         return _latin(en, rng)
 
     def intro(kind, always=False):
@@ -322,7 +333,7 @@ def _one(rng, places, by_district, urban_pool) -> Example:
     if rng.random() < SHOP_LEVEL_RATE:
         shop = [(_shop_level(rng, _pick_script(mode, rng)), None)]
         chunks.insert(rng.randint(0, min(len(chunks), 2)), shop)
-    if rng.random() < 0.10:
+    if rng.random() < 0.14:
         landmark = [(_landmark(rng, _pick_script(mode, rng), area_en, area_bn), "LANDMARK")]
         chunks.insert(rng.randint(0, len(chunks)), landmark)
 
@@ -333,16 +344,30 @@ def _one(rng, places, by_district, urban_pool) -> Example:
         chunks.append([(_ward(rng, _pick_script(mode, rng)), "AREA")])
 
     use_bn = area_bn is not None and _pick_script(mode, rng)
-    area = area_bn if use_bn else _latin(area_en, rng)
+    area = _keyboard_form(area_bn, rng) if use_bn else _latin(area_en, rng)
     top = NUMBERED_AREAS.get(area_en) if urban else None
+    numbered = False
     if top and rng.random() < 0.6:  # decision D9
         area = _numbered(area, rng.randint(1, top), use_bn, rng)
+        numbered = True
     elif not urban and rng.random() < RURAL_NUMBERED_RATE:
         area = _numbered(area, rng.randint(1, 9), False, rng)
+        numbered = True
     area_chunk = [*(intro("post", always=form) if not urban else []), (area, "AREA")]
-    if rng.random() < (0.85 if form else 0.92):  # real addresses sometimes have no area
+    # Real addresses often have no area: "Savar, Dhaka-1340", "House 5, Road 3,
+    # Dhaka". Dropping it is what makes an upazila-FIRST address (0.9% of the old
+    # training data) and a district right after a house / road / landmark (4-17
+    # cases) common enough to learn.
+    if place.upazila_admin and not urban and not form:
+        keep_area = 0.55
+    else:
+        keep_area = 0.85 if (urban or form) else 0.78
+    area_index = None
+    if rng.random() < keep_area:
         chunks.append(area_chunk)
+        area_index = len(chunks) - 1
 
+    upazila_kept = False
     if not urban and place.upazila_admin and rng.random() < (0.95 if form else 0.85):
         upazila = place.upazila
         if upazila.endswith("Sadar") and rng.random() < 0.3:
@@ -350,6 +375,17 @@ def _one(rng, places, by_district, urban_pool) -> Example:
         if form or upazila.lower() != place.area.lower() or rng.random() < 0.5:
             chunks.append([*intro("thana", always=form),
                            (name(upazila, place.upazila_bn), "UPAZILA")])
+            upazila_kept = True
+
+    # Decision D11 (provisional): when the post office is named exactly like the
+    # administrative upazila (32% of them are), a name that appears ONCE is the
+    # UPAZILA; if both appear, the first is the post office (AREA) and the second
+    # the UPAZILA (as in D1); a "P.O:" introducer or a number marks it as AREA.
+    collides = (not urban and place.upazila_admin and not numbered and len(area_chunk) == 1
+                and place.area.lower() == place.upazila.lower())
+    solo_area = [(area, "UPAZILA")] if collides else area_chunk
+    if area_index is not None and not upazila_kept and collides:
+        chunks[area_index] = solo_area
 
     district_pieces: list[tuple[str, str | None]] = []
     if rng.random() < 0.93:
@@ -383,7 +419,7 @@ def _one(rng, places, by_district, urban_pool) -> Example:
     if reverse:
         chunks.reverse()
     if not any(label for chunk in chunks for _, label in chunk):  # never an empty address
-        chunks.append(area_chunk)
+        chunks.append(solo_area)  # no upazila chunk exists here, so D11 applies to the lone name
 
     base_sep = rng.choices((", ", ",", " ", " - ", "; "), (0.55, 0.15, 0.15, 0.08, 0.07))[0]
     vary_sep = rng.random() < 0.25

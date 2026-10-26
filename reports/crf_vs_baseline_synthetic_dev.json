@@ -18,12 +18,16 @@
   },
   "models": {
     "crf_v1_surface_context": {
-      "train_seconds": 19.2,
-      "model_bytes": 419280
+      "train_seconds": 15.3,
+      "model_bytes": 452704
     },
     "crf_v2_plus_gazetteer": {
-      "train_seconds": 16.2,
-      "model_bytes": 347368
+      "train_seconds": 15.2,
+      "model_bytes": 353984
+    },
+    "crf_district_memory": {
+      "train_seconds": 17.3,
+      "model_bytes": 403180
     }
   },
   "scores": {
@@ -31,209 +35,280 @@
       "per_label": {
         "HOUSE": {
           "precision": 1.0,
-          "recall": 0.9822064056939501,
-          "f1": 0.9910233393177738,
-          "support": 281
+          "recall": 0.9879518072289156,
+          "f1": 0.993939393939394,
+          "support": 249
         },
         "ROAD": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 190
+          "support": 186
         },
         "BLOCK": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 95
+          "support": 89
         },
         "AREA": {
-          "precision": 0.707774798927614,
-          "recall": 0.8354430379746836,
-          "f1": 0.7663280116110305,
-          "support": 632
+          "precision": 0.6706408345752608,
+          "recall": 0.8379888268156425,
+          "f1": 0.7450331125827814,
+          "support": 537
         },
         "UPAZILA": {
-          "precision": 0.6047904191616766,
-          "recall": 0.7372262773722628,
-          "f1": 0.6644736842105262,
-          "support": 137
+          "precision": 0.6931818181818182,
+          "recall": 0.7134502923976608,
+          "f1": 0.7031700288184438,
+          "support": 171
         },
         "DISTRICT": {
-          "precision": 0.9331941544885177,
-          "recall": 0.7801047120418848,
-          "f1": 0.8498098859315589,
-          "support": 573
+          "precision": 0.9386503067484663,
+          "recall": 0.8066783831282952,
+          "f1": 0.8676748582230623,
+          "support": 569
         },
         "DIVISION": {
-          "precision": 0.970873786407767,
-          "recall": 0.6451612903225806,
-          "f1": 0.7751937984496124,
-          "support": 155
+          "precision": 0.9813084112149533,
+          "recall": 0.6441717791411042,
+          "f1": 0.7777777777777777,
+          "support": 163
         },
         "POSTCODE": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 366
+          "support": 371
         },
         "LANDMARK": {
-          "precision": 0.9615384615384616,
-          "recall": 0.9615384615384616,
-          "f1": 0.9615384615384616,
-          "support": 52
+          "precision": 0.9770114942528736,
+          "recall": 0.9770114942528736,
+          "f1": 0.9770114942528736,
+          "support": 87
         }
       },
       "micro": {
-        "precision": 0.870250606305578,
-        "recall": 0.867795243853285,
-        "f1": 0.8690211907164482,
-        "support": 2481
+        "precision": 0.8724194880264244,
+        "recall": 0.8724194880264244,
+        "f1": 0.8724194880264244,
+        "support": 2422
       },
-      "macro_f1": 0.8898185756732181
+      "macro_f1": 0.8960674072882592
     },
     "crf_v1_surface_context": {
       "per_label": {
         "HOUSE": {
           "precision": 1.0,
-          "recall": 0.9928825622775801,
-          "f1": 0.9964285714285714,
-          "support": 281
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 249
         },
         "ROAD": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 190
+          "support": 186
         },
         "BLOCK": {
-          "precision": 0.9894736842105263,
-          "recall": 0.9894736842105263,
-          "f1": 0.9894736842105263,
-          "support": 95
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 89
         },
         "AREA": {
-          "precision": 0.9493670886075949,
-          "recall": 0.9493670886075949,
-          "f1": 0.9493670886075949,
-          "support": 632
+          "precision": 0.9195612431444241,
+          "recall": 0.9366852886405959,
+          "f1": 0.9280442804428043,
+          "support": 537
         },
         "UPAZILA": {
-          "precision": 0.8823529411764706,
-          "recall": 0.8759124087591241,
-          "f1": 0.8791208791208791,
-          "support": 137
+          "precision": 0.8701298701298701,
+          "recall": 0.783625730994152,
+          "f1": 0.8246153846153846,
+          "support": 171
         },
         "DISTRICT": {
-          "precision": 0.9547826086956521,
-          "recall": 0.9581151832460733,
-          "f1": 0.9564459930313588,
-          "support": 573
+          "precision": 0.9615384615384616,
+          "recall": 0.9666080843585237,
+          "f1": 0.9640666082383874,
+          "support": 569
         },
         "DIVISION": {
-          "precision": 0.9407894736842105,
-          "recall": 0.9225806451612903,
-          "f1": 0.9315960912052118,
-          "support": 155
+          "precision": 0.9375,
+          "recall": 0.9202453987730062,
+          "f1": 0.9287925696594428,
+          "support": 163
         },
         "POSTCODE": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 366
+          "support": 371
         },
         "LANDMARK": {
-          "precision": 0.9803921568627451,
-          "recall": 0.9615384615384616,
-          "f1": 0.970873786407767,
-          "support": 52
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 87
         }
       },
       "micro": {
-        "precision": 0.965670436187399,
-        "recall": 0.9637243047158404,
-        "f1": 0.9646963889449264,
-        "support": 2481
+        "precision": 0.9602484472049689,
+        "recall": 0.9574731626754748,
+        "f1": 0.9588587967748604,
+        "support": 2422
       },
-      "macro_f1": 0.9637006771124343
+      "macro_f1": 0.960613204772891
     },
     "crf_v2_plus_gazetteer": {
       "per_label": {
         "HOUSE": {
-          "precision": 0.996415770609319,
-          "recall": 0.9893238434163701,
-          "f1": 0.9928571428571428,
-          "support": 281
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 249
         },
         "ROAD": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 190
+          "support": 186
         },
         "BLOCK": {
-          "precision": 0.9894736842105263,
-          "recall": 0.9894736842105263,
-          "f1": 0.9894736842105263,
-          "support": 95
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 89
         },
         "AREA": {
-          "precision": 0.945141065830721,
-          "recall": 0.9541139240506329,
-          "f1": 0.9496062992125985,
-          "support": 632
+          "precision": 0.9078014184397163,
+          "recall": 0.9534450651769087,
+          "f1": 0.930063578564941,
+          "support": 537
         },
         "UPAZILA": {
-          "precision": 0.8984375,
-          "recall": 0.8394160583941606,
-          "f1": 0.8679245283018867,
-          "support": 137
+          "precision": 0.9565217391304348,
+          "recall": 0.7719298245614035,
+          "f1": 0.8543689320388349,
+          "support": 171
         },
         "DISTRICT": {
-          "precision": 0.9600694444444444,
-          "recall": 0.9650959860383944,
-          "f1": 0.9625761531766753,
-          "support": 573
+          "precision": 0.9615384615384616,
+          "recall": 0.9666080843585237,
+          "f1": 0.9640666082383874,
+          "support": 569
         },
         "DIVISION": {
-          "precision": 0.9470198675496688,
-          "recall": 0.9225806451612903,
-          "f1": 0.934640522875817,
-          "support": 155
+          "precision": 0.9259259259259259,
+          "recall": 0.9202453987730062,
+          "f1": 0.923076923076923,
+          "support": 163
         },
         "POSTCODE": {
           "precision": 1.0,
           "recall": 1.0,
           "f1": 1.0,
-          "support": 366
+          "support": 371
         },
         "LANDMARK": {
           "precision": 1.0,
-          "recall": 0.9807692307692307,
-          "f1": 0.9902912621359222,
-          "support": 52
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 87
         }
       },
       "micro": {
-        "precision": 0.9672594987873888,
-        "recall": 0.9645304312777107,
-        "f1": 0.9658930373360243,
-        "support": 2481
+        "precision": 0.9619520264681555,
+        "recall": 0.9603633360858794,
+        "f1": 0.9611570247933884,
+        "support": 2422
       },
-      "macro_f1": 0.9652632880856188
+      "macro_f1": 0.9635084491021207
+    },
+    "crf_district_memory": {
+      "per_label": {
+        "HOUSE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 249
+        },
+        "ROAD": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 186
+        },
+        "BLOCK": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 89
+        },
+        "AREA": {
+          "precision": 0.907942238267148,
+          "recall": 0.9366852886405959,
+          "f1": 0.9220898258478459,
+          "support": 537
+        },
+        "UPAZILA": {
+          "precision": 0.8851351351351351,
+          "recall": 0.7660818713450293,
+          "f1": 0.8213166144200627,
+          "support": 171
+        },
+        "DISTRICT": {
+          "precision": 0.9840425531914894,
+          "recall": 0.9753954305799648,
+          "f1": 0.9796999117387466,
+          "support": 569
+        },
+        "DIVISION": {
+          "precision": 0.9573170731707317,
+          "recall": 0.9631901840490797,
+          "f1": 0.9602446483180427,
+          "support": 163
+        },
+        "POSTCODE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 371
+        },
+        "LANDMARK": {
+          "precision": 0.9886363636363636,
+          "recall": 1.0,
+          "f1": 0.9942857142857142,
+          "support": 87
+        }
+      },
+      "micro": {
+        "precision": 0.9647741400745959,
+        "recall": 0.9611890999174236,
+        "f1": 0.9629782833505689,
+        "support": 2422
+      },
+      "macro_f1": 0.9641818571789346
     }
   },
   "paired_bootstrap_micro_f1": {
     "crf_v1_surface_context minus rule_baseline": {
-      "mean": 0.0955685169968946,
-      "low": 0.08190082559812883,
-      "high": 0.11113054328310135,
+      "mean": 0.08622603455579035,
+      "low": 0.07107399168454231,
+      "high": 0.10115611240798439,
       "resamples": 1000
     },
     "crf_v2_plus_gazetteer minus crf_v1_surface_context": {
-      "mean": 0.001304476340585278,
-      "low": -0.0042727050908828446,
-      "high": 0.006658343736995365,
+      "mean": 0.0023619952669984004,
+      "low": -0.005118995874606402,
+      "high": 0.009550248344936008,
+      "resamples": 1000
+    },
+    "crf_district_memory minus crf_v1_surface_context": {
+      "mean": 0.004137273561689571,
+      "low": -0.0016559718484786545,
+      "high": 0.009412727644771746,
       "resamples": 1000
     }
   }

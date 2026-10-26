@@ -167,3 +167,24 @@ that follows gets its normal entity label.
 - NOT covered by this decision, so deliberately absent from the generator and
   the evaluation sets until decided: `Union Parishad Office` (and similar office
   or building names) and `Floor` (a close cousin of `Level`).
+
+## Decisions added during Task 6
+
+**D11 - A name shared by post office and upazila (PROVISIONAL, awaiting your
+confirmation).** 32% of administrative-upazila records (247 of 781) have a post
+office named exactly like the upazila (Amtali, Bamna, Betagi, ...), so a lone
+`Savar, Dhaka` is genuinely ambiguous. Tie-break within D8:
+- once -> the UPAZILA;
+- twice -> the first is the post office (AREA), the second the UPAZILA, in the
+  usual small-to-large order; in REVERSED order the roles follow the hierarchy
+  (the larger unit, the UPAZILA, comes first);
+- an introducer (`P.O:`, `Post:`, `ডাকঘর:`) or a number (`Amtali-6`) marks it
+  as a post-office name -> AREA.
+Easy to revert: one `if` in the generator. The hand-written sets v1 and v2
+were annotated with the same lone-name convention.
+
+**Unicode (implementation rule, not a labelling decision).** Bangla `য়` `ড়`
+`ঢ়` can be typed as one codepoint (how the gazetteer stores them) or as two
+(NFC); about a quarter of the gazetteer's Bangla names are affected (15/64
+districts, 123/494 upazilas). Names are now compared in NFC PER TOKEN, after
+tokenising, so character offsets into the user's original text never move.
