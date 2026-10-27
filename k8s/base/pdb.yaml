@@ -1,0 +1,14 @@
+# Limits VOLUNTARY disruptions (a node drain, a cluster upgrade) to one pod at a time.
+# It does nothing against crashes, and on a one-node cluster a drain still takes every
+# pod's node away; it is here because it is the right shape for a multi-node cluster.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: thikana
+  labels:
+    app.kubernetes.io/name: thikana
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: thikana

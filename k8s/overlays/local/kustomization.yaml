@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Set again here: the base's namespace does NOT reach resources added by an overlay. Without
+# this line service-lb.yaml was created in `default`, with no pods behind it (found by
+# running it, and guarded by a test).
+namespace: thikana
+
+resources:
+  - ../../base
+  - service-lb.yaml
+
+# The image comes from the local Docker engine (Docker Desktop's cluster shares it), built with
+#   docker build -t thikana-api:<sha> --build-arg GIT_SHA=<sha> .
+# Change newTag to deploy a different build. To use the published image instead,
+# set newName to ghcr.io/<owner>/thikana-api and newTag to the full commit SHA
+# (that needs a pull secret while the package is private).
+images:
+  - name: thikana-api
+    newTag: e8e5c4c

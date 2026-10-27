@@ -1,0 +1,14 @@
+# Pod Security Admission: the cluster itself REFUSES any pod in this namespace that is
+# not "restricted" (non-root, no privilege escalation, all capabilities dropped, a
+# seccomp profile, ...). The Deployment is written to pass, and the namespace makes
+# sure it keeps passing even if someone edits it carelessly later.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: thikana
+  labels:
+    app.kubernetes.io/name: thikana
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: v1.32
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
