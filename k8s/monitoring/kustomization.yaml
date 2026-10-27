@@ -1,0 +1,55 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# NO `namespace:` transformer on purpose. Prometheus's Role and RoleBinding must live in
+# the `thikana` namespace while everything else lives in `monitoring`, so every object
+# states its own namespace (a test checks this on the rendered output).
+resources:
+  - namespace.yaml
+  - prometheus/rbac.yaml
+  - prometheus/deployment.yaml
+  - prometheus/service.yaml
+  - grafana/service.yaml
+  - grafana/deployment.yaml
+
+# Generated ConfigMaps get a content hash in their name, so editing a rule, the scrape
+# config or the dashboard changes the pod template and rolls the pod: new config is never
+# silently ignored by a pod that read the old one at start-up.
+configMapGenerator:
+  - name: prometheus-config
+    namespace: monitoring
+    files:
+      - prometheus/prometheus.yml
+      - prometheus/alerts.yml
+  - name: grafana-datasources
+    namespace: monitoring
+    files:
+      - grafana/datasource.yml
+  - name: grafana-dashboard-provider
+    namespace: monitoring
+    files:
+      - grafana/dashboards.yml
+  - name: grafana-dashboards
+    namespace: monitoring
+    files:
+      - grafana/thikana-dashboard.json
+
+# Tag AND digest: the tag says what it is, the digest guarantees the bytes. Both read
+# from the pulled image, never guessed. Each candidate was scanned with the pinned Trivy
+# first (docs/observability.md): Prometheus v3.15.0 had 10 fixable HIGH findings in its Go
+# toolchain, so v3.15.1 is the pin.
+images:
+  - name: prometheus
+    newName: prom/prometheus
+    newTag: v3.15.1
+    digest: sha256:fa3302279710be2f21a8301ec17a8b4f2301fd829bd113839b3b6b02b6f191a2
+  # KNOWN FINDINGS: Grafana 13.3.0 still has 39 HIGH findings with a fix available (the Go
+  # standard library and golang.org/x/net, repeated across ~8 of its binaries; scanned
+  # 2026-10-27 with Trivy 0.76.1). Only Grafana rebuilding with a newer Go can clear them.
+  # 13.2.4 had 78, so this is the best available. It is cluster-internal only (ClusterIP,
+  # reached by port-forward), so it must NOT be exposed publicly until a rebuilt image is
+  # pinned here. Re-scan when bumping.
+  - name: grafana
+    newName: grafana/grafana
+    newTag: 13.3.0
+    digest: sha256:488984b716c0862639f91a698adbe2862677a5a07bad42da5f03f3030883b205

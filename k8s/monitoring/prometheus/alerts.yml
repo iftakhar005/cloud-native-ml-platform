@@ -1,0 +1,103 @@
+# Alert rules for the thikana service.
+#
+# An alert that fires too often gets ignored, and one that never fires is worse than
+# none, so each rule below says what it means and what to do. They are unit-tested
+# with promtool (k8s/monitoring/tests/alerts_test.yaml) and each was fired for real
+# against the running cluster (docs/observability.md).
+#
+# These only EVALUATE: nothing is sent anywhere, because there is no Alertmanager and
+# no notification credential. A firing alert shows in Prometheus and Grafana.
+groups:
+  - name: thikana-availability
+    rules:
+      # `for: 1m`, and this was argued BOTH ways by drills (docs/observability.md):
+      #  * 30 s fired a FALSE alarm on planned changes: deleting or scaling down a healthy pod
+      #    leaves `up == 0` for ~34 s while the target is removed, and a scale-down crossed 30 s.
+      #  * 1 m does not fire for a hung pod the liveness probe restarts after ~67 s (it is
+      #    unscrapeable ~57 s). That self-heals, so it is the lesser evil; the right signal for
+      #    it is a container-restart count, which needs kube-state-metrics (not installed).
+      # What this DOES catch: a pod that stays unscrapeable for a full minute.
+      - alert: ThikanaTargetDown
+        expr: up{job="thikana"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pod {{ $labels.pod }} cannot be scraped"
+          description: "Prometheus has failed to read {{ $labels.pod }}'s /metrics for 1 minute. The process is hung, crashed or unreachable. See `kubectl -n thikana describe pod {{ $labels.pod }}`."
+
+      - alert: ThikanaNoTargets
+        expr: absent(up{job="thikana"})
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No thikana pods are being scraped"
+          description: "Prometheus sees no pods at all: the Deployment is scaled to zero or discovery is broken. Nothing else here can alert while this is true."
+
+      - alert: ThikanaTooFewReplicas
+        expr: count(up{job="thikana"} == 1) < 2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Fewer than 2 thikana replicas are up"
+          description: "One more failure means an outage. The Deployment asks for 3."
+
+      # `for: 30s` for the same reason: with no model, the startup probe restarts the pod
+      # about every 60 s, which would reset a 1-minute timer each cycle. A healthy pod
+      # reports the model within a second of starting, so 30 s has no false positives.
+      - alert: ThikanaModelNotLoaded
+        expr: thikana_model_ready == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Pod {{ $labels.pod }} has no model loaded"
+          description: "The process is up but cannot parse: /readyz returns 503 and the pod receives no traffic. Check the model path and `kubectl -n thikana logs {{ $labels.pod }}`."
+
+  - name: thikana-service-quality
+    rules:
+      # API routes ONLY. The service counts every request, including Kubernetes's readiness,
+      # liveness and startup probes and Prometheus's own scrapes. At idle those are ~99.5% of
+      # all requests (measured: 1.15/s of probes vs 0.003/s of real traffic), so a single
+      # pod failing its readiness probe pushed the all-routes ratio to 11% and this alert
+      # FIRED with no user affected (drill, 2026-10-27). Probes are covered by
+      # ThikanaModelNotLoaded / ThikanaTargetDown instead.
+      - alert: ThikanaHighErrorRate
+        expr: |
+          sum(rate(thikana_http_requests_total{route=~"/api/.*",status=~"5.."}[5m]))
+            / sum(rate(thikana_http_requests_total{route=~"/api/.*"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "More than 5% of API requests are failing with a 5xx"
+          description: "Server errors are {{ $value | humanizePercentage }} of API requests over the last 5 minutes."
+
+      - alert: ThikanaHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(thikana_http_request_duration_seconds_bucket{route="/api/v1/parse"}[5m]))
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "p95 parse latency is above 500 ms"
+          description: "The 95th percentile of /api/v1/parse is {{ $value | humanizeDuration }}. The service is likely CPU-saturated: each pod is one single-threaded process, so add replicas."
+
+  - name: thikana-model-signals
+    rules:
+      # An infrastructure metric cannot show this: the service can be fast, up and
+      # returning 200 while the model finds nothing in what people send it.
+      - alert: ThikanaEmptyParsesHigh
+        expr: |
+          sum(rate(thikana_empty_parses_total[15m]))
+            / sum(rate(thikana_addresses_parsed_total[15m])) > 0.2
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "The parser is finding nothing in over 20% of addresses"
+          description: "{{ $value | humanizePercentage }} of parsed addresses had no entity. Either the input changed (a new format, another language, junk) or the model broke. The 20% threshold is an uncalibrated starting point; tune it on real traffic."

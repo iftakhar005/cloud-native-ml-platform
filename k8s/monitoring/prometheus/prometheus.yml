@@ -1,0 +1,39 @@
+# Prometheus configuration for the thikana namespace.
+global:
+  scrape_interval: 15s        # how often each pod's /metrics is read
+  evaluation_interval: 15s    # how often alert rules are evaluated
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  # Prometheus watching itself: if this is down, nothing below can be trusted.
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # The service. Pods are DISCOVERED through the Kubernetes API (so a new replica is
+  # scraped within seconds and a deleted one disappears) instead of listing addresses.
+  # Each pod is scraped directly, bypassing the Service, which is why per-replica
+  # series (and therefore load balancing) are visible.
+  - job_name: thikana
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names: [thikana]
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+        regex: thikana
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_container_port_name]
+        regex: http
+        action: keep
+      # Pods that are finished or failed are not scrapeable; a pod that is Running but
+      # NOT ready IS kept on purpose: it is exactly the one whose metrics explain why.
+      - source_labels: [__meta_kubernetes_pod_phase]
+        regex: Running
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace

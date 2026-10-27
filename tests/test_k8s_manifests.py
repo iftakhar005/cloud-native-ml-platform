@@ -135,7 +135,11 @@ def test_no_secret_is_referenced_or_pasted_into_the_manifests():
     files = [p for p in (ROOT / "k8s").rglob("*") if p.is_file()]
     assert files
     text = "".join(p.read_text(encoding="utf-8") for p in files)
-    assert "secretKeyRef" not in text and "kind: Secret" not in text
+    assert "kind: Secret" not in text                   # no Secret object, ever, in git
+    # Referencing a Secret BY NAME is fine (the Secret is created by hand); the only one is
+    # Grafana's admin password. Anything else appearing here is a new decision to review.
+    referenced = re.findall(r"secretKeyRef:\s*\n\s*name:\s*(\S+)", text)
+    assert referenced == ["grafana-admin"]
     assert "secretGenerator" not in text                # kustomize could generate one from a file
     assert ".dockerconfigjson" not in text and '"auths"' not in text
     assert not re.search(r"ghp_[A-Za-z0-9]{20,}|gho_[A-Za-z0-9]{20,}|github_pat_|-----BEGIN [A-Z ]*PRIVATE KEY",

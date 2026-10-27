@@ -1,0 +1,12 @@
+# Monitoring runs in its own namespace and under the same enforced "restricted" Pod Security
+# profile as the application: the cluster rejects a monitoring pod that is not locked down.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/part-of: thikana-monitoring
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: v1.32
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
