@@ -2,9 +2,12 @@
 #
 #   verify  test -> train -> quality gate           (read-only token)
 #   image   build -> smoke test -> Trivy -> push    (only this job can write packages)
+#   deploy  OPTIONAL, OFF by default: tell Render to run the image just published
 #
-# Nothing here deploys anything. A GitHub-hosted runner cannot reach a cluster running on
-# a laptop, so this pipeline ends at "a scanned image with a git-SHA tag exists in GHCR".
+# By default nothing here deploys anything. A GitHub-hosted runner cannot reach a cluster
+# running on a laptop, so the pipeline ends at "a scanned image with a git-SHA tag exists in
+# GHCR". The `deploy` job exists for a CLOUD host (Render's free tier, docs/public-hosting.md)
+# and does nothing until the repository variable RENDER_DEPLOY_ENABLED is set to `true`.
 #
 # SUPPLY CHAIN: every action is pinned to a full commit SHA (a tag can be moved, a SHA
 # cannot), and the scanner is the Trivy container image pinned by digest, deliberately
@@ -84,6 +87,8 @@ jobs:
     permissions:
       contents: read
       packages: write    # lets the built-in GITHUB_TOKEN push to ghcr.io/<owner>/ ; see docs/ci.md
+    outputs:
+      digest_ref: ${{ steps.publish.outputs.digest_ref }}   # ghcr.io/<owner>/thikana-api@sha256:..., for `deploy`
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -191,6 +196,7 @@ jobs:
       # Only after every step above passed, and only for a push to main (never a pull
       # request). The token is given to this one step, not to the whole job.
       - name: Publish to GHCR
+        id: publish
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -198,11 +204,73 @@ jobs:
           echo "${REGISTRY_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
           docker push "${IMAGE}"
           docker logout ghcr.io
+          digest_ref=$(docker image inspect "${IMAGE}" --format '{{index .RepoDigests 0}}')
+          # Exactly one shape is ever passed on: <registry>/<name>@sha256:<64 hex digits>.
+          if ! echo "${digest_ref}" | grep -Eq '^ghcr\.io/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$'; then
+            echo "unexpected digest reference: ${digest_ref}"; exit 1
+          fi
+          echo "digest_ref=${digest_ref}" >> "$GITHUB_OUTPUT"
           {
             echo "### Published"
             echo
             echo '```'
             echo "${IMAGE}"
-            docker image inspect "${IMAGE}" --format '{{index .RepoDigests 0}}'
+            echo "${digest_ref}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ---- OPTIONAL, OFF BY DEFAULT: deploy the image just published to Render ------------------
+  # Runs only when ALL of these hold: a push to main, the `image` job succeeded, and the
+  # repository VARIABLE RENDER_DEPLOY_ENABLED is exactly `true` (Settings > Secrets and
+  # variables > Actions > Variables). Merging this changes nothing until you set it.
+  #
+  # Why it is built this way:
+  #  * No `uses:` at all: no third-party action can ever see the secret. Only one curl runs.
+  #  * `permissions: {}`: it needs nothing from GitHub, so it gets nothing.
+  #  * The secret reaches only the one step that needs it, through `env`, and is never printed;
+  #    the step reports an HTTP status, not the URL.
+  #  * It deploys the DIGEST CI just pushed, never a tag that could be moved. Render's deploy
+  #    hook accepts `imgURL` for an image-backed service as long as everything except the tag or
+  #    digest matches the service's own image (docs: https://render.com/docs/deploy-hooks).
+  #  * The hook URL is itself a secret ("Your deploy hook URL is a secret!"): anyone holding it
+  #    can trigger a deploy of that service. It can only choose among images of the SAME name.
+  #    If it leaks, "Regenerate Hook" in Render and update the GitHub secret.
+  # Rollback needs no CI: Render > Deploys > Rollback, or call the hook with an older digest.
+  deploy:
+    name: deploy to Render (optional)
+    needs: image
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      vars.RENDER_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Ask Render to run this exact image
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+          IMAGE_REF: ${{ needs.image.outputs.digest_ref }}
+        run: |
+          if [ -z "${RENDER_DEPLOY_HOOK}" ]; then
+            echo "RENDER_DEPLOY_ENABLED is true but the RENDER_DEPLOY_HOOK secret is empty"; exit 1
+          fi
+          if ! echo "${IMAGE_REF}" | grep -Eq '^ghcr\.io/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$'; then
+            echo "refusing to deploy anything that is not a ghcr.io digest reference"; exit 1
+          fi
+          # --get --data-urlencode: curl URL-encodes imgURL itself and appends it to the hook URL,
+          # which already carries ?key=..., so there is no hand-written encoding or ?/& logic.
+          status=$(curl --silent --show-error --max-time 30 --output /dev/null \
+            --write-out '%{http_code}' --request POST \
+            --get --data-urlencode "imgURL=${IMAGE_REF}" "${RENDER_DEPLOY_HOOK}")
+          # 200 = deploy started, 202 = another deploy is running and this one is queued (Render docs).
+          case "${status}" in
+            200|202) echo "Render accepted the deploy (HTTP ${status})" ;;
+            *) echo "Render answered HTTP ${status}; nothing was deployed"; exit 1 ;;
+          esac
+          {
+            echo "### Asked Render to deploy"
+            echo
+            echo '```'
+            echo "${IMAGE_REF}   (HTTP ${status})"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"

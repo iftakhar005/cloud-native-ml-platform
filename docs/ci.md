@@ -165,12 +165,41 @@ on the Actions list; the run's summary page was shared with me):
 a private one (GHCR answers `unauthorized` to both), so the pull *with* a credential is the
 only real proof, and it was done once.
 
+## The optional `deploy` job (off by default)
+
+For a **cloud** host (Render's free tier, `docs/public-hosting.md`) the workflow has a third job
+that tells the host to run the image just published. **It does nothing unless you turn it on**,
+and it was written and tested, not run against a real host.
+
+| | |
+|---|---|
+| When it runs | only for a push to `main`, after the `image` job succeeded, **and** the repository *variable* `RENDER_DEPLOY_ENABLED` is exactly `true` |
+| What it does | one `curl` POST to Render's deploy hook with `imgURL=` set to the **digest** CI just pushed (`ghcr.io/<owner>/thikana-api@sha256:...`) |
+| What it can read | nothing from GitHub: `permissions: {}`, no checkout, and **no third-party action**, so no action can ever see the secret |
+| What it never does | print the hook URL (it reports an HTTP status only), deploy a tag, or deploy anything that is not a `ghcr.io` digest |
+
+**Secret versus variable, and why both.** The hook URL is a *secret*: Render says "Your deploy hook URL is a
+secret!", because anyone holding it can trigger a deploy of that service (only of images with the same
+name, so the damage is limited, but keep it private). It goes in *Settings > Secrets and variables >
+Actions > Secrets* as `RENDER_DEPLOY_HOOK`. The on/off switch is an ordinary *variable*,
+`RENDER_DEPLOY_ENABLED`, because it is not sensitive and you want to be able to read and flip it. If the
+hook ever leaks, use *Regenerate Hook* in Render and replace the GitHub secret.
+
+**To enable:** create the Render service first, copy its deploy hook, add the secret, then set the variable to
+`true`. **To disable:** set the variable to anything else (or delete it). **Rollback** needs no CI: Render's
+*Deploys > Rollback*, or the same hook called by hand with an older digest as `imgURL`.
+
+**How it was tested:** the exact text of the job's script is executed by `tests/test_deploy_job.py` against a
+fake Render server (15 tests: method, encoding, the hook's own `?key=` kept, 200 and 202 accepted, every other
+status fails the job, five kinds of bad image refused without calling Render, the secret never printed), and
+`tests/test_ci_workflow.py` pins the gating, the missing permissions and the absence of third-party actions;
+14 deliberate breakages were each caught. **Not done:** `actionlint` was not run on this version (Docker was
+stopped when it was written), and it has not run on GitHub, so expect to read its first real run closely.
+
 ## What it does not do
 
-- **It does not deploy.** A GitHub-hosted runner cannot reach a cluster on your laptop.
-  The Kubernetes step will pull the SHA-tagged image from GHCR (or load a local build);
-  any "deploy" automation needs a real connection, such as a self-hosted runner, and is a
-  separate, optional decision.
+- **By default it does not deploy.** A GitHub-hosted runner cannot reach a cluster on your laptop, so nothing
+  here deploys to it. The optional job above targets a cloud host and is off until you enable it.
 - No image signing, SBOM or build provenance; no scheduled re-scan; no automated update of
   pinned versions. All are reasonable extensions, none is claimed.
 - It scans for known vulnerabilities only. It says nothing about whether the model is

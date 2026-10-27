@@ -7,9 +7,7 @@
 
   var T = window.Thikana;
   var MAX_CHARS = 500;
-  var CONNECT_ATTEMPTS = 25;      // ~100 s: enough for a free host to wake from sleep
-  var CONNECT_DELAY_MS = 4000;
-  var PARSE_TIMEOUT_MS = 20000;
+  var PARSE_TIMEOUT_MS = 20000;   // (how long to keep waiting for a sleeping server: T.WAKE_ATTEMPTS)
 
   var el = {
     form: document.getElementById("form"),
@@ -59,22 +57,22 @@
   }
 
   async function connect() {
-    for (var attempt = 1; attempt <= CONNECT_ATTEMPTS; attempt++) {
-      try {
-        var response = await fetch("/api/v1/model", { headers: { "Accept": "application/json" } });
-        if (response.ok) {
-          showModel(await response.json());
-          ready = true;
-          el.parse.disabled = false;
-          setStatus("Ready.", "ok");
-          return;
-        }
-      } catch (networkError) { /* the host may be waking up: fall through and retry */ }
-      setStatus("Waking the server (free hosts sleep when idle). Attempt " + attempt + " of " +
-                CONNECT_ATTEMPTS + "...", "wait");
-      await sleep(CONNECT_DELAY_MS);
+    var result = await T.connectWithRetry({
+      fetchModel: function () { return fetch("/api/v1/model", { headers: { "Accept": "application/json" } }); },
+      sleep: sleep,
+      onWait: function (attempt, total, elapsedMs) {
+        setStatus("Waking the server: free hosts sleep when idle and this can take a couple of minutes. " +
+                  "Waited " + Math.round(elapsedMs / 1000) + " s...", "wait");
+      }
+    });
+    if (result.ok) {
+      showModel(result.info);
+      ready = true;
+      el.parse.disabled = false;
+      setStatus("Ready.", "ok");
+    } else {
+      setStatus("Could not reach the model after several minutes. Reload the page to try again.", "bad");
     }
-    setStatus("Could not reach the model. Reload the page to try again.", "bad");
   }
 
   /* ---- parse ---- */

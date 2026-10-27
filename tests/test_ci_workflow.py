@@ -16,7 +16,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 TEXT = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
 WF = yaml.safe_load(TEXT)
-VERIFY, IMAGE = WF["jobs"]["verify"], WF["jobs"]["image"]
+VERIFY, IMAGE, DEPLOY = WF["jobs"]["verify"], WF["jobs"]["image"], WF["jobs"]["deploy"]
 
 
 def steps(job):
@@ -31,9 +31,9 @@ def index_of(job, needle):
     raise AssertionError(f"no step containing {needle!r}")
 
 
-def test_there_are_exactly_the_two_jobs_and_the_image_job_waits_for_verify():
-    assert set(WF["jobs"]) == {"verify", "image"}
-    assert IMAGE["needs"] == "verify"
+def test_there_are_exactly_these_jobs_and_each_waits_for_the_one_before():
+    assert set(WF["jobs"]) == {"verify", "image", "deploy"}
+    assert IMAGE["needs"] == "verify" and DEPLOY["needs"] == "image"
 
 
 def test_triggers_are_safe():
@@ -65,8 +65,41 @@ def test_default_permissions_are_read_only_and_only_the_image_job_can_write_pack
     assert IMAGE["permissions"] == {"contents": "read", "packages": "write"}
 
 
-def test_no_secret_is_used_except_the_built_in_token():
-    assert set(re.findall(r"secrets\.(\w+)", TEXT)) == {"GITHUB_TOKEN"}
+def test_no_secret_is_used_except_the_built_in_token_and_the_optional_deploy_hook():
+    assert set(re.findall(r"secrets\.(\w+)", TEXT)) == {"GITHUB_TOKEN", "RENDER_DEPLOY_HOOK"}
+    # the hook belongs to the deploy job alone: no other job may even name it
+    for name, job in WF["jobs"].items():
+        assert ("RENDER_DEPLOY_HOOK" in str(job)) == (name == "deploy"), name
+
+
+def test_the_deploy_job_is_off_by_default_and_runs_only_for_a_push_to_main_after_the_image_job():
+    condition = " ".join(DEPLOY["if"].split())
+    assert "github.event_name == 'push'" in condition and "github.ref == 'refs/heads/main'" in condition
+    assert "vars.RENDER_DEPLOY_ENABLED == 'true'" in condition       # a repository VARIABLE, unset by default
+    assert "||" not in condition                                      # every condition must hold
+
+
+def test_the_deploy_job_runs_no_third_party_code_and_gets_no_permissions():
+    assert DEPLOY["permissions"] == {}
+    assert all("uses" not in s for s in steps(DEPLOY))               # so no action can ever see the hook URL
+    assert len(steps(DEPLOY)) == 1
+
+
+def test_the_hook_secret_reaches_one_step_through_env_and_is_never_echoed():
+    step = steps(DEPLOY)[0]
+    assert step["env"]["RENDER_DEPLOY_HOOK"] == "${{ secrets.RENDER_DEPLOY_HOOK }}"
+    run = step["run"]
+    assert "${{" not in run
+    for leak in ("set -x", "--verbose", " -v ", "xtrace"):
+        assert leak not in run, leak
+    assert not re.search(r'echo[^\n]*\$\{?RENDER_DEPLOY_HOOK', run)
+
+
+def test_the_deploy_job_deploys_the_digest_the_image_job_published_and_nothing_else():
+    assert steps(IMAGE)[-1]["id"] == "publish"
+    assert IMAGE["outputs"]["digest_ref"] == "${{ steps.publish.outputs.digest_ref }}"
+    assert steps(DEPLOY)[0]["env"]["IMAGE_REF"] == "${{ needs.image.outputs.digest_ref }}"
+    assert "@sha256:" in steps(DEPLOY)[0]["run"] and "refusing to deploy" in steps(DEPLOY)[0]["run"]
 
 
 def test_checkouts_do_not_persist_credentials():
