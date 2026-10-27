@@ -238,6 +238,35 @@ def test_request_ids_are_echoed_when_valid_and_replaced_when_not(client):
 
 # ---- metrics -------------------------------------------------------------------------
 
+def test_every_response_names_the_replica_that_answered(model_path):
+    settings = Settings(model_path=model_path, instance="thikana-7d9f-abcde", max_body_bytes=2048)
+    with make_client(settings) as c:
+        ok = c.post("/api/v1/parse", json={"text": "House 12, Road 5, Mirpur-10, Dhaka-1216"})
+        bad = c.post("/api/v1/parse", json={"text": ""})
+        too_big = c.post("/api/v1/parse", content=b"x" * 5000, headers={"Content-Type": "application/json"})
+        for response in (ok, bad, too_big, c.get("/healthz"), c.get("/readyz"), c.get("/nope")):
+            assert response.headers["x-thikana-instance"] == "thikana-7d9f-abcde"
+    assert ok.status_code == 200 and bad.status_code == 422 and too_big.status_code == 413
+
+
+def test_the_instance_defaults_to_the_hostname_so_replicas_differ_without_configuration(monkeypatch):
+    monkeypatch.setattr("socket.gethostname", lambda: "thikana-5c8b6d-x2k4q")
+    assert Settings.from_env({}).instance == "thikana-5c8b6d-x2k4q"
+    assert Settings.from_env({"THIKANA_INSTANCE": "blue"}).instance == "blue"   # explicit wins
+    assert Settings.from_env({"THIKANA_INSTANCE": ""}).instance == "thikana-5c8b6d-x2k4q"
+
+
+def test_an_unusable_hostname_falls_back_instead_of_breaking_headers(monkeypatch):
+    monkeypatch.setattr("socket.gethostname", lambda: "bad host\r\n")
+    assert Settings.from_env({}).instance == "unknown"
+
+
+@pytest.mark.parametrize("value", ["a b", "evil\r\nSet-Cookie: x=1", "-leading", "x" * 64, "ünï"])
+def test_an_instance_name_that_could_break_a_header_is_rejected_at_startup(value):
+    with pytest.raises(ValueError, match="THIKANA_INSTANCE"):
+        Settings.from_env({"THIKANA_INSTANCE": value})
+
+
 def test_metrics_count_requests_entities_and_model_state(client):
     client.post("/api/v1/parse", json={"text": ADDRESS})
     text = client.get("/metrics").text

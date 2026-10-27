@@ -8,6 +8,8 @@ ConfigMap, and anything secret would come from a Secret instead.
 from __future__ import annotations
 
 import os
+import re
+import socket
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,6 +19,24 @@ ROOT = Path(__file__).resolve().parents[2]
 # Deliberately NOT imported from thikana.training.train_all: serving must not
 # import the training code (and with it pandas). A test checks the two agree.
 DEFAULT_MODEL = "crf_all_district_memory"
+
+# The instance name is sent back in a response header, so it must not be able to carry
+# a newline or any other header-breaking character.
+INSTANCE_OK = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,62}")
+
+
+def _instance(env: Mapping[str, str]) -> str:
+    """Which replica answered. Default: the hostname, which Docker sets to the container
+    id and Kubernetes sets to the pod name, so replicas tell themselves apart with no
+    configuration. THIKANA_INSTANCE overrides it (set it to something neutral to hide it)."""
+    raw = env.get("THIKANA_INSTANCE")
+    if raw:
+        if not INSTANCE_OK.fullmatch(raw):
+            raise ValueError("THIKANA_INSTANCE must be 1-63 characters from A-Z a-z 0-9 . _ - "
+                             f"and start with a letter or digit, got {raw!r}")
+        return raw
+    host = socket.gethostname()
+    return host if INSTANCE_OK.fullmatch(host) else "unknown"
 
 
 def _integer(env: Mapping[str, str], name: str, default: int, minimum: int) -> int:
@@ -41,6 +61,7 @@ class Settings:
     log_level: str = "INFO"
     cors_origins: tuple[str, ...] = ()  # empty = CORS off (the default is the safe one)
     git_sha: str = "unknown"            # stamped at image build time
+    instance: str = "unknown"           # which replica answered (X-Thikana-Instance header)
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "Settings":
@@ -58,4 +79,5 @@ class Settings:
             log_level=level,
             cors_origins=origins,
             git_sha=env.get("THIKANA_GIT_SHA", default.git_sha),
+            instance=_instance(env),
         )
