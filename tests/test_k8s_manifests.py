@@ -126,10 +126,32 @@ def test_the_image_is_pinned_to_a_commit_tag_never_latest():
     assert CONTAINER["imagePullPolicy"] == "IfNotPresent"   # `Always` would defeat a local image
 
 
+GHCR = ROOT / "k8s" / "overlays" / "ghcr"
+GHCR_KUSTOMIZATION = load(GHCR / "kustomization.yaml")
+
+
 def test_no_secret_is_referenced_or_pasted_into_the_manifests():
-    text = "".join(p.read_text(encoding="utf-8") for p in (*BASE.glob("*.yaml"), *LOCAL.glob("*.yaml")))
+    # Every file under k8s/, whatever its name: a credential must never be committed here.
+    files = [p for p in (ROOT / "k8s").rglob("*") if p.is_file()]
+    assert files
+    text = "".join(p.read_text(encoding="utf-8") for p in files)
     assert "secretKeyRef" not in text and "kind: Secret" not in text
-    assert not re.search(r"ghp_[A-Za-z0-9]{20,}|github_pat_|-----BEGIN [A-Z ]*PRIVATE KEY", text)
+    assert "secretGenerator" not in text                # kustomize could generate one from a file
+    assert ".dockerconfigjson" not in text and '"auths"' not in text
+    assert not re.search(r"ghp_[A-Za-z0-9]{20,}|gho_[A-Za-z0-9]{20,}|github_pat_|-----BEGIN [A-Z ]*PRIVATE KEY",
+                         text)
+
+
+def test_the_published_image_is_pinned_by_digest_and_pulled_with_a_named_secret_that_is_not_in_git():
+    image = GHCR_KUSTOMIZATION["images"][0]
+    assert image["name"] == CONTAINER["image"]
+    assert image["newName"].startswith("ghcr.io/") and image["newName"].endswith("/thikana-api")
+    assert re.fullmatch(r"sha256:[0-9a-f]{64}", image["digest"])      # bytes, not a movable tag
+    assert "newTag" not in image
+    patch = yaml.safe_load(GHCR_KUSTOMIZATION["patches"][0]["patch"])
+    assert patch == [{"op": "add", "path": "/imagePullSecrets", "value": [{"name": "ghcr-pull"}]}]
+    assert GHCR_KUSTOMIZATION["patches"][0]["target"] == {"kind": "ServiceAccount", "name": "thikana"}
+    assert "../local" in GHCR_KUSTOMIZATION["resources"]
 
 
 def test_a_shutdown_has_time_to_finish_after_the_pre_stop_wait():
@@ -162,3 +184,17 @@ def test_the_rendered_overlay_puts_every_object_in_the_namespace_and_wires_the_c
     ref = deployment["spec"]["template"]["spec"]["containers"][0]["envFrom"][0]["configMapRef"]["name"]
     assert ref == config and re.fullmatch(r"thikana-config-[a-z0-9]+", config)   # hashed: edits roll the pods
     assert deployment["spec"]["template"]["spec"]["containers"][0]["image"].startswith("thikana-api:")
+
+
+@pytest.mark.skipif(shutil.which("kubectl") is None, reason="kubectl not installed")
+def test_the_rendered_ghcr_overlay_runs_the_digest_and_attaches_the_pull_secret():
+    out = subprocess.run(["kubectl", "kustomize", str(GHCR)], capture_output=True, text=True, check=True).stdout
+    docs = [d for d in yaml.safe_load_all(out) if d]
+    image = next(d for d in docs if d["kind"] == "Deployment")["spec"]["template"]["spec"]["containers"][0]["image"]
+    assert re.fullmatch(r"ghcr\.io/[\w.-]+/thikana-api@sha256:[0-9a-f]{64}", image)
+    account = next(d for d in docs if d["kind"] == "ServiceAccount")
+    assert account["imagePullSecrets"] == [{"name": "ghcr-pull"}]
+    assert not any(d["kind"] == "Secret" for d in docs)             # the secret is never rendered
+    for d in docs:
+        if d["kind"] != "Namespace":
+            assert d["metadata"]["namespace"] == "thikana"
