@@ -150,13 +150,20 @@ on the Actions list; the run's summary page was shared with me):
   (0 / 44 / 63 / 62 / 1 by severity; 0 / 0 / 5 / 1 / 0 fixable), on a different day and
   machine. They will drift as the vulnerability database changes.
 
-**Not verified:**
+**Verified by pulling it** (merge commit `f18f777`, digest
+`sha256:b3e619c005252f12b3514e7bcb0dff80d7f988b3476b05db6c45bdf3c80f15c8`; details in
+`docs/kubernetes.md`):
 
-- That the package is **private** and can be pulled by a cluster. I have not seen the
-  package page or pulled the image; the default for a new GHCR package is private, which
-  is an expectation, not a check. The Kubernetes step will test pulling for real.
-- That the published image runs. The smoke test ran on the same build before the push, but
-  the pushed image itself has not been pulled and started.
+- **The package is private.** A cluster with no credential got `unauthorized` from the
+  registry. (The package page itself was never looked at; this is observed behaviour.)
+- **The published image runs.** With a `read:packages`-only pull secret, three pods pulled
+  it, their `imageID` equalled the digest from the CI log, and `/api/v1/model` reported
+  the full commit SHA `f18f777a3c...`. The model inside has version `14f57233ee3e`, not the
+  local `49b58b49a6fe`: the Linux-trained file, as described above.
+
+**Not verified:** that the digest of an image that does not exist is distinguishable from
+a private one (GHCR answers `unauthorized` to both), so the pull *with* a credential is the
+only real proof, and it was done once.
 
 ## What it does not do
 

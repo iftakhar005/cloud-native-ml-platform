@@ -14,7 +14,9 @@ k8s/base/                        the reusable part
   kustomization.yaml             generated ConfigMap (its hash rolls the pods on change)
 k8s/overlays/local/              the part specific to a laptop
   service-lb.yaml                LoadBalancer on localhost:8088 (Docker Desktop publishes it)
-  kustomization.yaml             pins the image to a commit tag
+  kustomization.yaml             pins the image to a commit tag (a local build)
+k8s/overlays/ghcr/               the local overlay, running the image CI published
+  kustomization.yaml             pinned by digest; attaches the pull secret by NAME
 scripts/loadtest.py              the load generator used for every measurement below
 ```
 
@@ -59,6 +61,46 @@ Useful afterwards: `kubectl -n thikana rollout undo deployment/thikana` (previou
 `kubectl -n thikana scale deployment/thikana --replicas=N` (temporary: the file says 3),
 `kubectl -n thikana logs deploy/thikana` (one JSON line per request, never the address),
 `kubectl -n thikana describe pod <name>` (why a pod is not ready: the probe events).
+
+## Running the published image (private package, pull secret)
+
+CI publishes `ghcr.io/<owner>/thikana-api:<commit-sha>` and prints its digest in the
+"Publish to GHCR" step. The package is private, so a cluster needs a credential.
+
+**What happens without one (run):** the registry answers `unauthorized`, the new pod sits in
+`ImagePullBackOff`, and the three old pods keep serving: **0 errors in 17,767 requests**.
+
+**1. Make a token that can only read packages.** GitHub > Settings > Developer settings >
+*Tokens (classic)* (fine-grained tokens do not work with GHCR) > scope **`read:packages` only**,
+expiry 30 days. A leaked one can read your packages and nothing else.
+
+**2. Put it in the cluster without typing it where it is recorded.** In your own PowerShell
+(the prompt hides the input, so it stays out of history and out of any chat):
+
+```powershell
+$t = Read-Host "Paste the read:packages token" -AsSecureString
+$p = [System.Net.NetworkCredential]::new("", $t).Password; kubectl -n thikana create secret docker-registry ghcr-pull --docker-server=ghcr.io --docker-username=<github user> --docker-password=$p; Remove-Variable p, t
+```
+
+For a moment the token is a command-line argument, visible to other processes on the machine.
+
+**3. Deploy and verify** (the overlay references the secret by name; nothing secret is in git,
+and a test fails if anything secret-looking appears under `k8s/`):
+
+```powershell
+kubectl apply -k k8s/overlays/ghcr
+kubectl -n thikana rollout status deployment/thikana
+kubectl -n thikana get pods -o jsonpath="{.items[*].status.containerStatuses[0].imageID}"
+```
+
+**Result (run, merge commit `f18f777`):** all three pods reported an `imageID` equal to the
+digest in the CI log, `/api/v1/model` reported `git_sha f18f777a3c...`, and parsing worked
+through the load balancer. The model version was `14f57233ee3e`, not the local
+`49b58b49a6fe`: CI trains on Linux (see `docs/ci.md`).
+
+To update: take the new digest from the latest run on `main`, put it in
+`k8s/overlays/ghcr/kustomization.yaml`, apply, and check the reported `git_sha`.
+Cleanup: delete the token on GitHub, and `kubectl -n thikana delete secret ghcr-pull`.
 
 ## What each choice is for
 
@@ -198,9 +240,10 @@ not isolated.
   HorizontalPodAutoscaler do not work. Replica counts here are set by hand.
 - **No NetworkPolicy.** Whether Docker Desktop's network would enforce one was not tested,
   so none is claimed.
-- **The image comes from the local Docker engine.** The published GHCR image has not been
-  pulled by the cluster. That needs an image-pull secret while the package is private, and
-  was not tested.
+- **The `local` overlay uses a locally built image; the published one needs the `ghcr`
+  overlay and a pull secret** (next section). The secret is created by hand and is a
+  base64-encoded Kubernetes Secret, not an encrypted one: anyone who can read secrets in the
+  namespace can read the token, which is why it must be `read:packages` only and expire.
 - **`progressDeadlineSeconds` is the default 600 s**, so a stuck rollout is only *marked*
   failed after ten minutes (the old pods keep serving meanwhile; `rollout status` with a
   timeout is the faster signal for automation). It is a one-line change if wanted.

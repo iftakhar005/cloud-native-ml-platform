@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# The local overlay plus: run the image PUBLISHED by CI instead of a locally built one.
+# The package in GHCR is private, so the cluster needs a credential to pull it.
+resources:
+  - ../local
+
+# Pinned by DIGEST, not by tag: a digest names exact bytes and cannot be re-pointed.
+# Update it from the "Publish to GHCR" step of a run on main (the line ending
+# "digest: sha256:..."), then check `GET /api/v1/model` reports the matching git_sha.
+images:
+  - name: thikana-api
+    newName: ghcr.io/iftakhar005/thikana-api
+    digest: sha256:b3e619c005252f12b3514e7bcb0dff80d7f988b3476b05db6c45bdf3c80f15c8
+
+# The pull credential is referenced BY NAME. The Secret itself is created by hand and is
+# never in git:
+#   kubectl -n thikana create secret docker-registry ghcr-pull --docker-server=ghcr.io \
+#     --docker-username=<github user> --docker-password=<token with ONLY read:packages>
+# See docs/kubernetes.md. Attached to the ServiceAccount, so every pod using it pulls with it.
+patches:
+  - target:
+      kind: ServiceAccount
+      name: thikana
+    patch: |-
+      - op: add
+        path: /imagePullSecrets
+        value:
+          - name: ghcr-pull
