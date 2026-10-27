@@ -206,6 +206,13 @@ not isolated.
   timeout is the faster signal for automation). It is a one-line change if wanted.
 - **No retries, no timeouts configured** in front of the service; the crash drill shows
   why that matters.
+- **One manifest test does not run in CI.** The test that renders the overlay with
+  `kubectl kustomize` skips when `kubectl` is absent, and on GitHub's runner it was: the
+  pull-request run reported `217 passed, 1 skipped` (218 locally). I had expected the
+  runner to have `kubectl`; it does not, or not on the PATH. The static test for the same
+  namespace bug (`test_the_overlay_sets_the_namespace_itself`) does run there, so the bug
+  is still guarded; only the stronger rendered check is local-only. Installing a pinned
+  `kubectl` in the workflow would close that, at the cost of one more pinned download.
 - The `restricted` namespace rule was accepted by the manifests but never tested against a
   deliberately violating pod.
 - Run-to-run noise in the measurements was not measured.
