@@ -193,7 +193,7 @@ def test_with_one_trusted_proxy_only_the_entry_that_proxy_added_is_believed():
 # ---- rate limiter: in the app --------------------------------------------------------------
 
 def test_the_api_is_limited_with_a_429_in_the_usual_envelope_and_a_retry_after(model_path):
-    with client_for(model_path, rate_limit_per_minute=60, rate_limit_burst=3) as c:
+    with client_for(model_path, rate_limit_per_minute=1, rate_limit_burst=3) as c:
         codes = [c.post("/api/v1/parse", json=ADDRESS).status_code for _ in range(5)]
         assert codes == [200, 200, 200, 429, 429]
         limited = c.post("/api/v1/parse", json=ADDRESS)
@@ -205,7 +205,7 @@ def test_the_api_is_limited_with_a_429_in_the_usual_envelope_and_a_retry_after(m
 
 
 def test_probes_the_page_and_other_clients_are_never_limited(model_path):
-    with client_for(model_path, rate_limit_per_minute=60, rate_limit_burst=1) as c:
+    with client_for(model_path, rate_limit_per_minute=1, rate_limit_burst=1) as c:
         c.post("/api/v1/parse", json=ADDRESS)
         assert c.post("/api/v1/parse", json=ADDRESS).status_code == 429
         for path in ("/healthz", "/readyz", "/", "/assets/app.js", "/metrics"):
@@ -214,14 +214,14 @@ def test_probes_the_page_and_other_clients_are_never_limited(model_path):
 
 
 def test_without_trusted_proxies_a_forged_forwarded_header_does_not_buy_a_new_allowance(model_path):
-    with client_for(model_path, rate_limit_per_minute=60, rate_limit_burst=2) as c:
+    with client_for(model_path, rate_limit_per_minute=1, rate_limit_burst=2) as c:
         codes = [c.post("/api/v1/parse", json=ADDRESS, headers={"X-Forwarded-For": f"203.0.113.{i}"}).status_code
                  for i in range(5)]
         assert codes == [200, 200, 429, 429, 429]
 
 
 def test_with_one_trusted_proxy_clients_are_separate_and_forging_the_left_side_does_not_help(model_path):
-    with client_for(model_path, rate_limit_per_minute=60, rate_limit_burst=2, trusted_proxy_hops=1) as c:
+    with client_for(model_path, rate_limit_per_minute=1, rate_limit_burst=2, trusted_proxy_hops=1) as c:
         def post(forwarded):
             return c.post("/api/v1/parse", json=ADDRESS, headers={"X-Forwarded-For": forwarded}).status_code
         assert [post("1.1.1.1, 9.9.9.9") for _ in range(3)] == [200, 200, 429]            # the proxy-added 9.9.9.9
@@ -239,7 +239,7 @@ def test_rate_limiting_is_off_unless_asked_for(model_path):
 def test_client_addresses_never_reach_the_logs_even_though_the_limiter_uses_them(model_path, caplog):
     import logging
     caplog.set_level(logging.DEBUG)
-    with client_for(model_path, rate_limit_per_minute=60, rate_limit_burst=1, trusted_proxy_hops=1) as c:
+    with client_for(model_path, rate_limit_per_minute=1, rate_limit_burst=1, trusted_proxy_hops=1) as c:
         for _ in range(3):                                           # the second and third are 429s
             c.post("/api/v1/parse", json=ADDRESS, headers={"X-Forwarded-For": "198.51.100.77, 203.0.113.9"})
     logged = " ".join(r.getMessage() + " " + str(getattr(r, "__dict__", "")) for r in caplog.records)

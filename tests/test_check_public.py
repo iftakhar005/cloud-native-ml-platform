@@ -63,7 +63,7 @@ def failed(results):
 
 
 def test_a_correctly_configured_public_service_passes_every_check(model_path):
-    settings = Settings(model_path=model_path, public_mode=True, rate_limit_per_minute=60, rate_limit_burst=5)
+    settings = Settings(model_path=model_path, public_mode=True, rate_limit_per_minute=1, rate_limit_burst=5)
     with Live(settings) as url:
         results = check_public.checks(url)
         assert failed(results) == set(), failed(results)
@@ -88,7 +88,7 @@ def test_a_missing_rate_limit_is_reported(model_path):
 def test_a_limiter_that_trusts_a_forgeable_header_is_reported(model_path):
     # hops=1 with NO proxy in front: the "rightmost forwarded entry" is whatever the client wrote,
     # so rotating it buys a new allowance. This is exactly the misconfiguration to catch.
-    settings = Settings(model_path=model_path, public_mode=True, rate_limit_per_minute=60,
+    settings = Settings(model_path=model_path, public_mode=True, rate_limit_per_minute=1,
                         rate_limit_burst=3, trusted_proxy_hops=1)
     with Live(settings) as url:
         probe = check_public.probe_rate_limit(url, 30)
