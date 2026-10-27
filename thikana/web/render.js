@@ -69,9 +69,40 @@
     return ms < 1000 ? Math.round(ms) + " ms" : (ms / 1000).toFixed(1) + " s";
   }
 
+  /* How long the page keeps asking before it gives up on a server that is waking from sleep.
+     Measured, not guessed: the image under a 0.1 CPU limit (what a free host gives) took 50 to
+     127 seconds to become ready, and Render's own docs say a wake takes "about one minute".
+     60 attempts x 4 s = 4 minutes covers the worst case seen with margin. One definition, tested
+     (tests/js/render.test.cjs), so shortening it again cannot happen by accident. */
+  var WAKE_ATTEMPTS = 60;
+  var WAKE_DELAY_MS = 4000;
+
+  /* Ask for the model until it answers, retrying on any failure: a 503 (not loaded yet), any
+     other non-OK status, a network error, or an unreadable body. Everything it needs is passed
+     in (fetchModel, sleep) so it can be tested without a browser or a clock.
+       opts.fetchModel() -> Promise of a Response-like {ok, json()}
+       opts.sleep(ms)    -> Promise
+       opts.onWait(n, total, elapsedMs) -> called before each pause, for the status line */
+  async function connectWithRetry(opts) {
+    var attempts = opts.attempts || WAKE_ATTEMPTS;
+    var delayMs = opts.delayMs === undefined ? WAKE_DELAY_MS : opts.delayMs;
+    for (var attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        var response = await opts.fetchModel();
+        if (response.ok) { return { ok: true, info: await response.json(), attempts: attempt }; }
+      } catch (failure) { /* the host may be waking up: fall through and try again */ }
+      if (attempt < attempts) {
+        if (opts.onWait) { opts.onWait(attempt, attempts, attempt * delayMs); }
+        await opts.sleep(delayMs);
+      }
+    }
+    return { ok: false, attempts: attempts };
+  }
+
   var api = {
-    LABELS: LABELS, NAMES: NAMES,
-    segments: segments, fieldRows: fieldRows, describeError: describeError, formatMs: formatMs
+    LABELS: LABELS, NAMES: NAMES, WAKE_ATTEMPTS: WAKE_ATTEMPTS, WAKE_DELAY_MS: WAKE_DELAY_MS,
+    segments: segments, fieldRows: fieldRows, describeError: describeError, formatMs: formatMs,
+    connectWithRetry: connectWithRetry
   };
   if (typeof module === "object" && module.exports) { module.exports = api; } else { root.Thikana = api; }
 })(typeof globalThis !== "undefined" ? globalThis : this);

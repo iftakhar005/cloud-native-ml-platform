@@ -99,6 +99,70 @@ test("error messages come from the status and CODE only, and never echo the serv
   }
 });
 
+// ---- waiting for a server that is waking from sleep ----------------------------------------
+
+const ok = (info) => ({ ok: true, json: async () => info });
+const status = (code) => ({ ok: false, status: code, json: async () => ({}) });
+const instantSleep = () => { const calls = []; return { calls, sleep: async (ms) => { calls.push(ms); } }; };
+
+test("the page waits at least three minutes for a waking server (a measured 127 s cold start must fit)", () => {
+  // At the 0.1 CPU a free host gives, the image took 50-127 s to become ready. A shorter wait than
+  // that would show "could not reach the model" to the first visitor after every sleep.
+  assert.ok(T.WAKE_ATTEMPTS * T.WAKE_DELAY_MS >= 180000, `${T.WAKE_ATTEMPTS} x ${T.WAKE_DELAY_MS} ms`);
+  assert.ok(T.WAKE_DELAY_MS >= 1000 && T.WAKE_DELAY_MS <= 10000);          // neither hammering nor sluggish
+});
+
+test("connectWithRetry returns at once when the model answers", async () => {
+  const s = instantSleep();
+  const result = await T.connectWithRetry({ fetchModel: async () => ok({ name: "m" }), sleep: s.sleep, attempts: 5, delayMs: 10 });
+  assert.deepEqual(result, { ok: true, info: { name: "m" }, attempts: 1 });
+  assert.deepEqual(s.calls, []);
+});
+
+test("connectWithRetry keeps trying through 503s and network errors, then succeeds", async () => {
+  const s = instantSleep();
+  const script = [() => status(503), () => { throw new TypeError("network"); }, () => status(502), () => ok({ name: "m" })];
+  let i = 0;
+  const waits = [];
+  const result = await T.connectWithRetry({
+    fetchModel: async () => script[i++](), sleep: s.sleep, attempts: 10, delayMs: 4000,
+    onWait: (n, total, elapsed) => waits.push([n, total, elapsed]),
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.attempts, 4);
+  assert.deepEqual(s.calls, [4000, 4000, 4000]);                       // paused between failures only
+  assert.deepEqual(waits, [[1, 10, 4000], [2, 10, 8000], [3, 10, 12000]]);
+});
+
+test("connectWithRetry gives up after exactly the allowed attempts, without a pointless final pause", async () => {
+  const s = instantSleep();
+  let calls = 0;
+  const result = await T.connectWithRetry({ fetchModel: async () => { calls++; return status(503); }, sleep: s.sleep, attempts: 3, delayMs: 7 });
+  assert.deepEqual(result, { ok: false, attempts: 3 });
+  assert.equal(calls, 3);
+  assert.deepEqual(s.calls, [7, 7]);                                    // between attempts, not after the last
+});
+
+test("a 200 whose body cannot be read counts as a failure and is retried", async () => {
+  const s = instantSleep();
+  const bad = { ok: true, json: async () => { throw new SyntaxError("not json"); } };
+  const script = [bad, ok({ name: "m" })];
+  let i = 0;
+  const result = await T.connectWithRetry({ fetchModel: async () => script[i++], sleep: s.sleep, attempts: 4, delayMs: 1 });
+  assert.equal(result.ok, true);
+  assert.equal(result.attempts, 2);
+});
+
+test("connectWithRetry uses the shared defaults when none are given", async () => {
+  const s = instantSleep();
+  let calls = 0;
+  const result = await T.connectWithRetry({ fetchModel: async () => { calls++; return status(503); }, sleep: s.sleep });
+  assert.equal(calls, T.WAKE_ATTEMPTS);
+  assert.equal(result.ok, false);
+  assert.equal(s.calls.length, T.WAKE_ATTEMPTS - 1);
+  assert.ok(s.calls.every((ms) => ms === T.WAKE_DELAY_MS));
+});
+
 test("formatMs switches to seconds at one second", () => {
   assert.equal(T.formatMs(12.4), "12 ms");
   assert.equal(T.formatMs(999.6), "1000 ms");
