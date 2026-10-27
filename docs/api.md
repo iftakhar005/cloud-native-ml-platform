@@ -140,8 +140,13 @@ flags, in Kubernetes a ConfigMap.
 | `THIKANA_LOG_LEVEL` | `INFO` | `DEBUG` / `INFO` / `WARNING` / `ERROR` |
 | `THIKANA_CORS_ORIGINS` | *(empty = CORS off)* | comma-separated allowed origins |
 | `THIKANA_GIT_SHA` | `unknown` | stamped by the build; shown by `/api/v1/model` |
+| `THIKANA_INSTANCE` | the machine's hostname | which replica answered; sent in the `X-Thikana-Instance` response header. The hostname is the pod name in Kubernetes and the container id in Docker. 1-63 characters from `A-Z a-z 0-9 . _ -`; anything else fails at startup because the value goes into an HTTP header. Set it to something neutral to hide the pod name |
 
 A bad value fails at startup with a message naming the variable.
+
+Every response carries `X-Request-ID` (echoed if valid, else generated) and
+`X-Thikana-Instance`. The second exists so that behind a load balancer you can see
+*which* replica served a request (`docs/kubernetes.md`); it says nothing about the address.
 
 ## Privacy
 
