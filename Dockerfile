@@ -68,6 +68,9 @@ WORKDIR /app
 COPY --chmod=a=rX models/crf_all_district_memory.crfsuite models/crf_all_district_memory.json models/
 COPY --chmod=a=rX thikana/__init__.py thikana/schema.py thikana/text.py thikana/features.py thikana/model.py thikana/
 COPY --chmod=a=rX thikana/api/ thikana/api/
+# The web page (four static files). Served by the API process itself, so there is no second
+# container or host, and no CORS.
+COPY --chmod=a=rX thikana/web/ thikana/web/
 
 USER 10001:10001
 EXPOSE 8000
@@ -87,6 +90,10 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 # --no-access-log: the app writes ONE structured JSON line per request (id, route, status,
 #   latency, counts). uvicorn's own plain-text access line would duplicate it.
 # --no-server-header: do not announce which server software this is.
+# --no-proxy-headers: uvicorn otherwise TRUSTS X-Forwarded-For from any peer on 127.0.0.1 and
+#   rewrites the client address before the app sees it. That is a second, hidden mechanism next to
+#   the app's own rate limiter (THIKANA_TRUSTED_PROXY_HOPS), and it let a forged header buy a new
+#   allowance (found by scripts/check_public.py). With it off, exactly one mechanism decides.
 # Exec form (a JSON array), so uvicorn is PID 1 and receives SIGTERM directly: that is
 # what makes `docker stop` and Kubernetes rolling updates shut down gracefully.
-CMD ["uvicorn", "thikana.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-server-header", "--no-access-log"]
+CMD ["uvicorn", "thikana.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-server-header", "--no-access-log", "--no-proxy-headers"]

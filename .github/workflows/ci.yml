@@ -129,9 +129,35 @@ jobs:
           test "${served}" = "${GITHUB_SHA}"
           test "$(docker inspect --format '{{.Config.User}}' smoke)" = "10001:10001"
 
-      - name: Dump container log if the smoke test failed
+      # The same image as it will run on a public host: public mode on, same strict flags. The
+      # cluster needs /metrics, /docs and the instance name; the open internet must not see them.
+      # NOTE the `if ...; then exit 1; fi` for the "must be absent" check: under `bash -e` a command
+      # negated with `!` never fails the script, so `! grep ...` would pass even when the header leaks.
+      - name: Smoke test public mode
+        run: |
+          docker run -d --name smoke-public -p 8001:8000 --read-only --cap-drop ALL \
+            --security-opt no-new-privileges \
+            -e THIKANA_PUBLIC_MODE=true -e THIKANA_RATE_LIMIT_PER_MINUTE=60 "${IMAGE}"
+          curl --silent --show-error --fail --retry 30 --retry-delay 1 --retry-all-errors \
+            http://127.0.0.1:8001/readyz > /dev/null
+          status() { curl --silent --output /dev/null --write-out '%{http_code}' "http://127.0.0.1:8001$1"; }
+          test "$(status /)" = "200"
+          test "$(status /assets/app.js)" = "200"
+          test "$(status /metrics)" = "404"
+          test "$(status /docs)" = "404"
+          test "$(status /openapi.json)" = "404"
+          curl --silent --show-error --fail http://127.0.0.1:8001/ | grep -q "Thikana"
+          headers=$(curl --silent --dump-header - --output /dev/null http://127.0.0.1:8001/)
+          echo "$headers" | grep -qi '^content-security-policy:'
+          if echo "$headers" | grep -qi '^x-thikana-instance:'; then
+            echo "public mode leaks the instance name"; exit 1
+          fi
+
+      - name: Dump container logs if a smoke test failed
         if: failure()
-        run: docker logs smoke || true
+        run: |
+          docker logs smoke || true
+          docker logs smoke-public || true
 
       - name: Export image for scanning
         run: docker save "${IMAGE}" -o "${RUNNER_TEMP}/image.tar"

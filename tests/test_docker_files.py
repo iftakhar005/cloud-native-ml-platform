@@ -89,6 +89,11 @@ def test_cmd_is_exec_form_so_sigterm_reaches_the_server():
     assert "--workers" not in cmd                              # scale with replicas, not workers
 
 
+def test_uvicorns_own_forwarded_header_handling_is_off_so_only_the_apps_limiter_decides():
+    cmd = [l for l in instructions() if l.startswith("CMD")][-1]
+    assert "--no-proxy-headers" in cmd     # else a forged X-Forwarded-For from localhost rewrites the client address
+
+
 def test_a_healthcheck_probes_readiness_not_just_liveness():
     check = [l for l in instructions() if l.startswith("HEALTHCHECK")]
     assert check and "/readyz" in check[0]

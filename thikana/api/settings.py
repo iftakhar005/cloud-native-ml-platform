@@ -39,6 +39,17 @@ def _instance(env: Mapping[str, str]) -> str:
     return host if INSTANCE_OK.fullmatch(host) else "unknown"
 
 
+def _boolean(env: Mapping[str, str], name: str, default: bool) -> bool:
+    raw = env.get(name)
+    if raw is None or raw == "":
+        return default
+    if raw.lower() in {"1", "true", "yes", "on"}:
+        return True
+    if raw.lower() in {"0", "false", "no", "off"}:
+        return False
+    raise ValueError(f"{name} must be true or false, got {raw!r}")
+
+
 def _integer(env: Mapping[str, str], name: str, default: int, minimum: int) -> int:
     raw = env.get(name)
     if raw is None or raw == "":
@@ -62,6 +73,11 @@ class Settings:
     cors_origins: tuple[str, ...] = ()  # empty = CORS off (the default is the safe one)
     git_sha: str = "unknown"            # stamped at image build time
     instance: str = "unknown"           # which replica answered (X-Thikana-Instance header)
+    # ---- for a deployment on the open internet (docs/public-hosting.md) ----
+    public_mode: bool = False           # hides /metrics, /docs and the instance header
+    rate_limit_per_minute: int = 0      # per client, 0 = off (the cluster has its own limits)
+    rate_limit_burst: int = 20          # requests a client may make at once before being slowed
+    trusted_proxy_hops: int = 0         # proxies in front whose X-Forwarded-For entry is trusted
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "Settings":
@@ -80,4 +96,8 @@ class Settings:
             cors_origins=origins,
             git_sha=env.get("THIKANA_GIT_SHA", default.git_sha),
             instance=_instance(env),
+            public_mode=_boolean(env, "THIKANA_PUBLIC_MODE", default.public_mode),
+            rate_limit_per_minute=_integer(env, "THIKANA_RATE_LIMIT_PER_MINUTE", default.rate_limit_per_minute, 0),
+            rate_limit_burst=_integer(env, "THIKANA_RATE_LIMIT_BURST", default.rate_limit_burst, 1),
+            trusted_proxy_hops=_integer(env, "THIKANA_TRUSTED_PROXY_HOPS", default.trusted_proxy_hops, 0),
         )

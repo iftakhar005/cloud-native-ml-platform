@@ -38,6 +38,7 @@ with `-e NAME=value` or `--env-file`.
 | Base | `python:3.12-slim`, **pinned by digest** (Python 3.12.15, Debian 13) |
 | Packages | the 16 in `requirements/serve.txt`; no numpy, pandas or pytest |
 | Code | `thikana/api` plus `schema`, `text`, `features`, `model`; **not** `thikana/training` |
+| Web page | `thikana/web`: four static files (`index.html`, `style.css`, `render.js`, `app.js`), served at `/` by the same process |
 | Model | `crf_all_district_memory` and its sidecar, **baked in** |
 | User | uid 10001 `app`, no home, no login shell. Code and model are root-owned and read-only |
 | Process | one `uvicorn`, PID 1, exec-form `CMD`, so `SIGTERM` reaches it directly |
