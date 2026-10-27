@@ -1,0 +1,10 @@
+# Provisioned at start-up, so Grafana never depends on someone clicking "Add data source".
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    uid: prometheus              # fixed, so dashboards can refer to it by uid
+    type: prometheus
+    access: proxy                # Grafana's server queries Prometheus, not your browser
+    url: http://prometheus.monitoring.svc:9090
+    isDefault: true
+    editable: false

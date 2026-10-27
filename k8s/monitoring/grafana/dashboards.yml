@@ -1,0 +1,11 @@
+# Tells Grafana to load every dashboard JSON found in the mounted ConfigMap directory.
+apiVersion: 1
+providers:
+  - name: thikana
+    orgId: 1
+    folder: Thikana
+    type: file
+    disableDeletion: true          # the file in git is the source of truth
+    allowUiUpdates: false          # edits in the UI would be lost on restart; change the JSON instead
+    options:
+      path: /var/lib/grafana-dashboards

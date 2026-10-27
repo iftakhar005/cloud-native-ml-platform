@@ -1,0 +1,43 @@
+# What Prometheus may ask the Kubernetes API, and no more.
+#
+# To find the pods to scrape it must LIST and WATCH pods. That permission is a Role in the
+# `thikana` namespace (not a ClusterRole): Prometheus can see pods in ONE namespace, can
+# read nothing else, and can change nothing. The ServiceAccount lives in `monitoring`.
+#
+# Both objects name their namespace explicitly. A kustomize `namespace:` transformer would
+# have moved the Role into `monitoring`, where it would grant nothing useful.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: prometheus-discovery
+  namespace: thikana
+  labels:
+    app.kubernetes.io/name: prometheus
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: prometheus-discovery
+  namespace: thikana
+  labels:
+    app.kubernetes.io/name: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: prometheus-discovery
+subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: monitoring

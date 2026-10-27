@@ -1,0 +1,241 @@
+# Unit tests for prometheus/alerts.yml, run with promtool against synthetic series:
+#   promtool test rules tests/alerts_test.yaml
+# Each rule has a case where it must fire and a case where it must stay silent: a rule
+# that cannot fail to fire, or never fires, is the dangerous kind.
+rule_files:
+  - ../prometheus/alerts.yml
+
+# The same cadence as prometheus.yml (`evaluation_interval: 15s`). Testing at 1m would make a
+# `for: 30s` alert look like it fires a whole evaluation later than it really does.
+evaluation_interval: 15s
+
+tests:
+  # ---- a pod stops answering scrapes -----------------------------------------------------
+  - interval: 1m
+    input_series:
+      - series: 'up{job="thikana", pod="p1"}'
+        values: '1 1 1 0 0 0 0 0 0 0'
+      - series: 'up{job="thikana", pod="p2"}'
+        values: '1 1 1 1 1 1 1 1 1 1'
+    alert_rule_test:
+      - eval_time: 2m            # still up
+        alertname: ThikanaTargetDown
+        exp_alerts: []
+      - eval_time: 3m            # just went down: pending, not firing yet ("for: 1m")
+        alertname: ThikanaTargetDown
+        exp_alerts: []
+      - eval_time: 6m            # down for over a minute: fires, for p1 only
+        alertname: ThikanaTargetDown
+        exp_alerts:
+          - exp_labels: {severity: critical, job: thikana, pod: p1}
+            exp_annotations:
+              summary: "Pod p1 cannot be scraped"
+              description: "Prometheus has failed to read p1's /metrics for 1 minute. The process is hung, crashed or unreachable. See `kubectl -n thikana describe pod p1`."
+  # The drills' lesson: a PLANNED termination leaves `up == 0` for ~34 s while the target is
+  # removed, and that must NOT page anyone (with `for: 30s` it did). A pod that stays down for
+  # minutes must. One missed scrape (15 s) must never fire.
+  - interval: 15s
+    input_series:
+      - series: 'up{job="thikana", pod="planned-termination"}'
+        values: '1x8 0x2 stale'        # down ~34 s, then the target is removed: Prometheus writes a staleness marker
+      - series: 'up{job="thikana", pod="one-missed-scrape"}'
+        values: '1x8 0 1x43'
+      - series: 'up{job="thikana", pod="really-down"}'
+        values: '1x8 0x30'             # down from 2m15s and stays down
+    alert_rule_test:
+      - eval_time: 3m                # the terminating pod is gone or pending; nothing has fired yet
+        alertname: ThikanaTargetDown
+        exp_alerts: []
+      - eval_time: 5m                # only the pod that stayed down fires
+        alertname: ThikanaTargetDown
+        exp_alerts:
+          - exp_labels: {severity: critical, job: thikana, pod: really-down}
+            exp_annotations:
+              summary: "Pod really-down cannot be scraped"
+              description: "Prometheus has failed to read really-down's /metrics for 1 minute. The process is hung, crashed or unreachable. See `kubectl -n thikana describe pod really-down`."
+
+  # ---- no pods discovered at all ---------------------------------------------------------
+  - interval: 1m
+    input_series:
+      - series: 'something_unrelated{job="other"}'
+        values: '1 1 1 1 1 1'
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: ThikanaNoTargets
+        exp_alerts: []
+      - eval_time: 4m
+        alertname: ThikanaNoTargets
+        exp_alerts:
+          - exp_labels: {severity: critical, job: thikana}
+            exp_annotations:
+              summary: "No thikana pods are being scraped"
+              description: "Prometheus sees no pods at all: the Deployment is scaled to zero or discovery is broken. Nothing else here can alert while this is true."
+
+  # ---- fewer than two replicas up --------------------------------------------------------
+  - interval: 1m
+    input_series:
+      - series: 'up{job="thikana", pod="p1"}'
+        values: '1 1 1 1 1 1 1'
+      - series: 'up{job="thikana", pod="p2"}'
+        values: '0 0 0 0 0 0 0'
+      - series: 'up{job="thikana", pod="p3"}'
+        values: '0 0 0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: ThikanaTooFewReplicas
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations:
+              summary: "Fewer than 2 thikana replicas are up"
+              description: "One more failure means an outage. The Deployment asks for 3."
+  - interval: 1m
+    input_series:               # all three up: silent
+      - series: 'up{job="thikana", pod="p1"}'
+        values: '1 1 1 1 1 1 1'
+      - series: 'up{job="thikana", pod="p2"}'
+        values: '1 1 1 1 1 1 1'
+      - series: 'up{job="thikana", pod="p3"}'
+        values: '1 1 1 1 1 1 1'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: ThikanaTooFewReplicas
+        exp_alerts: []
+
+  # ---- up but without a model ------------------------------------------------------------
+  - interval: 1m
+    input_series:
+      - series: 'thikana_model_ready{job="thikana", pod="p1"}'
+        values: '1 1 0 0 0 0 0 0'
+      - series: 'thikana_model_ready{job="thikana", pod="p2"}'
+        values: '1 1 1 1 1 1 1 1'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: ThikanaModelNotLoaded
+        exp_alerts:
+          - exp_labels: {severity: critical, job: thikana, pod: p1}
+            exp_annotations:
+              summary: "Pod p1 has no model loaded"
+              description: "The process is up but cannot parse: /readyz returns 503 and the pod receives no traffic. Check the model path and `kubectl -n thikana logs p1`."
+
+  # ---- error rate: 10% of requests are 5xx -> fires -------------------------------------
+  - interval: 1m
+    input_series:
+      - series: 'thikana_http_requests_total{method="POST", route="/api/v1/parse", status="200"}'
+        values: '0+90x30'
+      - series: 'thikana_http_requests_total{method="POST", route="/api/v1/parse", status="500"}'
+        values: '0+10x30'
+    alert_rule_test:
+      - eval_time: 3m            # not sustained yet
+        alertname: ThikanaHighErrorRate
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: ThikanaHighErrorRate
+        exp_alerts:
+          - exp_labels: {severity: critical}
+            exp_annotations:
+              summary: "More than 5% of API requests are failing with a 5xx"
+              description: "Server errors are 10% of API requests over the last 5 minutes."
+  # THE REGRESSION FOUND BY A DRILL: a pod failing its readiness probe answers /readyz with 503
+  # over and over, and probes are ~99.5% of requests at idle. That must NOT count as user errors
+  # (it fired as a false alarm at 6.7% while every real request was a 200).
+  - interval: 1m
+    input_series:
+      - series: 'thikana_http_requests_total{method="GET", route="/readyz", status="503"}'
+        values: '0+30x30'
+      - series: 'thikana_http_requests_total{method="GET", route="/readyz", status="200"}'
+        values: '0+40x30'
+      - series: 'thikana_http_requests_total{method="GET", route="/healthz", status="200"}'
+        values: '0+20x30'
+      - series: 'thikana_http_requests_total{method="POST", route="/api/v1/parse", status="200"}'
+        values: '0+10x30'
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: ThikanaHighErrorRate
+        exp_alerts: []
+  # ... and 1% is tolerated; and 4xx (the client's mistakes) never count.
+  - interval: 1m
+    input_series:
+      - series: 'thikana_http_requests_total{method="POST", route="/api/v1/parse", status="200"}'
+        values: '0+99x30'
+      - series: 'thikana_http_requests_total{method="POST", route="/api/v1/parse", status="500"}'
+        values: '0+1x30'
+      - series: 'thikana_http_requests_total{method="POST", route="/api/v1/parse", status="422"}'
+        values: '0+500x30'
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: ThikanaHighErrorRate
+        exp_alerts: []
+
+  # ---- latency: every request lands between 0.5 s and 1 s -> p95 is 975 ms ----------------
+  - interval: 1m
+    input_series:
+      - series: 'thikana_http_request_duration_seconds_bucket{method="POST", route="/api/v1/parse", le="0.5"}'
+        values: '0+0x30'
+      - series: 'thikana_http_request_duration_seconds_bucket{method="POST", route="/api/v1/parse", le="1"}'
+        values: '0+100x30'
+      - series: 'thikana_http_request_duration_seconds_bucket{method="POST", route="/api/v1/parse", le="+Inf"}'
+        values: '0+100x30'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: ThikanaHighLatency
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: ThikanaHighLatency
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations:
+              summary: "p95 parse latency is above 500 ms"
+              description: "The 95th percentile of /api/v1/parse is 975ms. The service is likely CPU-saturated: each pod is one single-threaded process, so add replicas."
+  - interval: 1m
+    input_series:               # fast: everything under 50 ms
+      - series: 'thikana_http_request_duration_seconds_bucket{method="POST", route="/api/v1/parse", le="0.05"}'
+        values: '0+100x30'
+      - series: 'thikana_http_request_duration_seconds_bucket{method="POST", route="/api/v1/parse", le="0.5"}'
+        values: '0+100x30'
+      - series: 'thikana_http_request_duration_seconds_bucket{method="POST", route="/api/v1/parse", le="+Inf"}'
+        values: '0+100x30'
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: ThikanaHighLatency
+        exp_alerts: []
+  - interval: 1m
+    input_series:               # slow, but on another route: this rule is about parsing only
+      - series: 'thikana_http_request_duration_seconds_bucket{method="GET", route="/metrics", le="0.5"}'
+        values: '0+0x30'
+      - series: 'thikana_http_request_duration_seconds_bucket{method="GET", route="/metrics", le="1"}'
+        values: '0+100x30'
+      - series: 'thikana_http_request_duration_seconds_bucket{method="GET", route="/metrics", le="+Inf"}'
+        values: '0+100x30'
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: ThikanaHighLatency
+        exp_alerts: []
+
+  # ---- model signal: 30% of addresses yield nothing -> fires -----------------------------
+  - interval: 1m
+    input_series:
+      - series: 'thikana_addresses_parsed_total{job="thikana", pod="p1"}'
+        values: '0+100x60'
+      - series: 'thikana_empty_parses_total{job="thikana", pod="p1"}'
+        values: '0+30x60'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: ThikanaEmptyParsesHigh
+        exp_alerts: []
+      - eval_time: 45m
+        alertname: ThikanaEmptyParsesHigh
+        exp_alerts:
+          - exp_labels: {severity: warning}
+            exp_annotations:
+              summary: "The parser is finding nothing in over 20% of addresses"
+              description: "30% of parsed addresses had no entity. Either the input changed (a new format, another language, junk) or the model broke. The 20% threshold is an uncalibrated starting point; tune it on real traffic."
+  - interval: 1m
+    input_series:               # 5% empty is normal: silent
+      - series: 'thikana_addresses_parsed_total{job="thikana", pod="p1"}'
+        values: '0+100x60'
+      - series: 'thikana_empty_parses_total{job="thikana", pod="p1"}'
+        values: '0+5x60'
+    alert_rule_test:
+      - eval_time: 45m
+        alertname: ThikanaEmptyParsesHigh
+        exp_alerts: []

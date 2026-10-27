@@ -17,6 +17,7 @@ k8s/overlays/local/              the part specific to a laptop
   kustomization.yaml             pins the image to a commit tag (a local build)
 k8s/overlays/ghcr/               the local overlay, running the image CI published
   kustomization.yaml             pinned by digest; attaches the pull secret by NAME
+k8s/monitoring/                  Prometheus, Grafana and alert rules: see docs/observability.md
 scripts/loadtest.py              the load generator used for every measurement below
 ```
 
