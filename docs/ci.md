@@ -139,13 +139,24 @@ this file does not quote timings or counts from it). That covers the real action
 (`checkout`, `setup-python`, `upload/download-artifact`), the pip cache, the quality gate
 and the image build, smoke test and Trivy gate on a hosted runner.
 
-**Not verified yet:**
+**Verified on GitHub, push to `main`** (merge commit `bdd418c`, run `ci #3`, green, 2m 14s
+on the Actions list; the run's summary page was shared with me):
 
-- **The publish path.** A pull request skips "Publish to GHCR" by design, so
-  `docker login ghcr.io`, `docker push` with the real `GITHUB_TOKEN`, and the package
-  permission behaviour have not run. They run for the first time on a push to `main`.
-- Whether the Trivy numbers on the runner equal the local ones above. The vulnerability
-  database changes daily, so they may differ; read the run's summary table.
+- **The publish path works.** `docker login ghcr.io` and `docker push` with the built-in
+  `GITHUB_TOKEN` succeeded, and the summary records
+  `ghcr.io/iftakhar005/thikana-api:bdd418c1e6af72776d86755085b17cf388a80b3a`, digest
+  `sha256:8123789f1e3f1a24028a98a9a957eb838702950b1bfe1dc9ad4435b28b605891`.
+- **The Trivy numbers on the runner equal the local ones** in every cell of the table above
+  (0 / 44 / 63 / 62 / 1 by severity; 0 / 0 / 5 / 1 / 0 fixable), on a different day and
+  machine. They will drift as the vulnerability database changes.
+
+**Not verified:**
+
+- That the package is **private** and can be pulled by a cluster. I have not seen the
+  package page or pulled the image; the default for a new GHCR package is private, which
+  is an expectation, not a check. The Kubernetes step will test pulling for real.
+- That the published image runs. The smoke test ran on the same build before the push, but
+  the pushed image itself has not been pulled and started.
 
 ## What it does not do
 
@@ -158,7 +169,7 @@ and the image build, smoke test and Trivy gate on a hosted runner.
 - It scans for known vulnerabilities only. It says nothing about whether the model is
   right.
 
-## First run: what to do (steps 1 and 2 are done)
+## First run: what to do (all three steps are done)
 
 1. Push the branch and open a pull request into `main`. The `verify` and `image` jobs run;
    nothing is published.

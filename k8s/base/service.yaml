@@ -1,0 +1,18 @@
+# The stable address of "whichever pods are ready". Traffic is spread across the READY
+# pods only; a pod failing its readiness probe drops out within seconds.
+# ClusterIP = reachable inside the cluster. How it is exposed outside depends on where
+# the cluster runs, so that lives in an overlay (see k8s/overlays/local).
+apiVersion: v1
+kind: Service
+metadata:
+  name: thikana
+  labels:
+    app.kubernetes.io/name: thikana
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: thikana
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

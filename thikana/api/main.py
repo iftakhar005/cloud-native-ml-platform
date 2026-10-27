@@ -99,6 +99,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 raise
 
         response.headers["X-Request-ID"] = request.state.request_id
+        response.headers["X-Thikana-Instance"] = settings.instance   # makes load balancing visible
         if request.url.path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"  # addresses are personal data
         _finish(request, metrics, response.status_code, started)

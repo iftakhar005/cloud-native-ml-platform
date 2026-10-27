@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thikana
+  labels:
+    app.kubernetes.io/name: thikana
+    app.kubernetes.io/component: api
+spec:
+  # Three replicas so a load balancer has something to balance and one pod can die
+  # (or be replaced during an update) without the service going away. They all share
+  # ONE machine on a laptop cluster: this protects against a crashed process, not a
+  # crashed computer.
+  replicas: 3
+  revisionHistoryLimit: 5          # how many old ReplicaSets `kubectl rollout undo` can return to
+
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: thikana
+
+  # Start a new pod, wait until it is READY, only then remove an old one. With
+  # maxUnavailable 0 capacity never drops below 3 during an update.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: thikana
+        app.kubernetes.io/component: api
+    spec:
+      serviceAccountName: thikana
+      automountServiceAccountToken: false   # no API credentials inside the pod
+      terminationGracePeriodSeconds: 30
+
+      securityContext:                      # pod level: who the process is
+        runAsNonRoot: true
+        runAsUser: 10001                    # the uid the Dockerfile creates (a test checks they agree)
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+
+      containers:
+        - name: api
+          # No registry or tag here: the overlay sets both. Never `latest`.
+          image: thikana-api
+          imagePullPolicy: IfNotPresent     # tags are commit SHAs, so a tag never changes meaning
+          ports:
+            - name: http
+              containerPort: 8000
+
+          # Plain settings from the ConfigMap; the service has no secrets (see settings.py).
+          envFrom:
+            - configMapRef:
+                name: thikana-config
+          env:
+            # The pod's own name, returned as X-Thikana-Instance so you can SEE which
+            # replica answered.
+            - name: THIKANA_INSTANCE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+
+          securityContext:                  # container level: what the process may do
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true    # verified: the service writes nothing to disk
+            capabilities:
+              drop: ["ALL"]
+
+          # Starting values from the measured idle footprint (42.6 MiB); docs/kubernetes.md
+          # records what load did to them. A memory limit KILLS the pod when exceeded, so
+          # it sits well above anything measured; the CPU limit only stops one pod from
+          # taking the whole laptop.
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: "1"
+              memory: 128Mi
+
+          # Three different questions, three different probes:
+          #  startup   - has the model finished loading? Holds the other two off until it has.
+          #  readiness - should this pod receive traffic right now? Failing removes it from
+          #              the Service but does NOT restart it.
+          #  liveness  - is the process wedged? Failing RESTARTS it. It deliberately does
+          #              not look at the model: a restart cannot fix a missing model.
+          startupProbe:
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 30            # up to 60 s to load
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+
+          # On shutdown Kubernetes removes the pod from the Service and signals the process
+          # at the same moment, so a request can still arrive just after the signal. Waiting
+          # five seconds first lets the removal finish; then uvicorn drains and exits.
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 5

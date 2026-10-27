@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: thikana
+
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - deployment.yaml
+  - service.yaml
+  - pdb.yaml
+
+# A generated ConfigMap gets a hash suffix (thikana-config-abc123), and the Deployment's
+# reference is rewritten to match. Change a value and the NAME changes, which changes the
+# pod template, which triggers a rolling update. A plain ConfigMap edit would leave the
+# running pods on the old values until someone remembered to restart them.
+# These are the service's defaults, written out so they are visible and reviewable.
+configMapGenerator:
+  - name: thikana-config
+    literals:
+      - THIKANA_LOG_LEVEL=INFO
+      - THIKANA_MAX_TEXT_CHARS=500
+      - THIKANA_MAX_BATCH=100
+      - THIKANA_MAX_BODY_BYTES=65536

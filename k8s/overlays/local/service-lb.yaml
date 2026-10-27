@@ -1,0 +1,22 @@
+# LOCAL ONLY. On Docker Desktop's Kubernetes a Service of type LoadBalancer is published
+# on localhost, so http://localhost:8088 reaches the pods (8080 and 8081 were already taken
+# by other containers on the machine this was built on; change `port` if 8088 is taken on yours,
+# and trust the X-Thikana-Instance header, not the port, to know whose answer you got). On a cloud provider the same
+# object would create (and bill for) a real load balancer, which is why it is not in the base.
+#
+# Do not demonstrate load balancing with `kubectl port-forward`: it connects to ONE pod
+# and never balances.
+apiVersion: v1
+kind: Service
+metadata:
+  name: thikana-local
+  labels:
+    app.kubernetes.io/name: thikana
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: thikana
+  ports:
+    - name: http
+      port: 8088
+      targetPort: http
