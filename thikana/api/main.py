@@ -3,18 +3,23 @@
 from __future__ import annotations
 
 import logging
+import math
+import mimetypes
 import time
 import uuid
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
+from fastapi.staticfiles import StaticFiles
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from thikana.api.errors import ApiError, envelope
+from thikana.api.ratelimit import RateLimiter, client_key
 from thikana.api.responses import Utf8JSONResponse
 from thikana.api.observability import REQUEST_ID_OK, Metrics, configure_logging, log
 from thikana.api.schemas import (BatchRequest, BatchResponse, ErrorResponse, ModelInfo,
@@ -25,6 +30,25 @@ from thikana.model import AddressParser
 
 VERSION = "0.1.0"
 ERRORS = {422: {"model": ErrorResponse}, 503: {"model": ErrorResponse}}
+WEB = Path(__file__).resolve().parents[1] / "web"
+
+# Python reads MIME types from the Windows registry, where .js is sometimes text/plain; with
+# `nosniff` (below) a browser then refuses to run the script. Pin the ones the UI needs.
+for _ext, _type in ((".js", "text/javascript"), (".css", "text/css"), (".svg", "image/svg+xml")):
+    mimetypes.add_type(_type, _ext)
+
+# On every response: never let a browser guess a type, never leak the address through a
+# Referer, never allow the page (or the API) to be framed.
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "X-Frame-Options": "DENY",
+    "Cross-Origin-Opener-Policy": "same-origin",
+}
+# On the UI only. The page loads nothing from anywhere else (no CDN, no fonts, no analytics),
+# so the policy can forbid everything but itself; `connect-src 'self'` lets it call the API.
+UI_CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
+          "connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
 
 
 def load_service(settings: Settings) -> ParserService | None:
@@ -61,13 +85,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             log("model_loaded", model=info.name, version=info.version, size_bytes=info.size_bytes)
         yield
 
+    # On the open internet the interactive docs and the schema are switched off (smaller
+    # surface, less noise); the API is documented in docs/api.md.
+    docs = {} if not settings.public_mode else {"docs_url": None, "redoc_url": None, "openapi_url": None}
     app = FastAPI(
         title="Thikana address parser", version=VERSION, lifespan=lifespan,
         default_response_class=Utf8JSONResponse,
         description="Splits a free-text Bangladeshi address into house, road, block, area, "
                     "upazila, district, division, postcode and landmark. A PROTOTYPE: see "
-                    "/api/v1/model for its limitations.")
+                    "/api/v1/model for its limitations.", **docs)
     app.state.service = None
+    limiter = (RateLimiter(settings.rate_limit_per_minute, settings.rate_limit_burst)
+               if settings.rate_limit_per_minute else None)
 
     if settings.cors_origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(settings.cors_origins),
@@ -81,8 +110,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         request.state.request_id = rid if REQUEST_ID_OK.match(rid) else uuid.uuid4().hex
         request.state.audit = {}
 
+        wait = None
+        # `is not None`, NOT truthiness: RateLimiter has __len__, and an empty one is falsy,
+        # which silently turned the limiter off (caught by tests/test_public_mode.py).
+        if limiter is not None and request.url.path.startswith("/api/"):   # never the UI, probes or scrapes
+            peer = request.client.host if request.client else None
+            allowed, seconds = limiter.check(client_key(request.headers, peer, settings.trusted_proxy_hops))
+            wait = None if allowed else seconds
+
         length = request.headers.get("content-length", "")
-        if length.isdigit() and int(length) > settings.max_body_bytes:
+        if wait is not None:
+            retry = max(1, math.ceil(wait))
+            response = Utf8JSONResponse(
+                envelope("rate_limited", f"too many requests: try again in {retry} s", request.state.request_id),
+                status_code=429, headers={"Retry-After": str(retry)})
+        elif length.isdigit() and int(length) > settings.max_body_bytes:
             # Enforced on Content-Length only. A chunked body without one is bounded
             # by the ingress / reverse proxy in front of the service, not here.
             response = Utf8JSONResponse(
@@ -99,9 +141,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 raise
 
         response.headers["X-Request-ID"] = request.state.request_id
-        response.headers["X-Thikana-Instance"] = settings.instance   # makes load balancing visible
-        if request.url.path.startswith("/api/"):
+        if not settings.public_mode:      # a pod name is useful in a cluster and a leak on the internet
+            response.headers["X-Thikana-Instance"] = settings.instance   # makes load balancing visible
+        response.headers.update(SECURITY_HEADERS)
+        path = request.url.path
+        if path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"  # addresses are personal data
+        elif path == "/" or path.startswith("/assets/"):
+            response.headers["Content-Security-Policy"] = UI_CSP
+            response.headers["Cache-Control"] = "no-cache"  # revalidate (ETag) so a new image shows at once
         _finish(request, metrics, response.status_code, started)
         return response
 
@@ -167,9 +215,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return Utf8JSONResponse({"status": "not_ready", "reason": "model_not_loaded"}, status_code=503)
         return {"status": "ready", "model_version": service.info.version}
 
-    @app.get("/metrics", tags=["ops"], summary="Prometheus metrics")
-    def prometheus():
-        return Response(generate_latest(metrics.registry), media_type=CONTENT_TYPE_LATEST)
+    if not settings.public_mode:
+        # Absent (404) on the open internet: request counts and model internals are for the
+        # cluster's Prometheus, not for whoever finds the URL.
+        @app.get("/metrics", tags=["ops"], summary="Prometheus metrics")
+        def prometheus():
+            return Response(generate_latest(metrics.registry), media_type=CONTENT_TYPE_LATEST)
 
     # ---- the product ------------------------------------------------------------
     @app.get("/api/v1/model", tags=["model"], response_model=ModelInfo, responses=ERRORS,
@@ -198,6 +249,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         results = [service.parse(text) for text in body.texts]
         record(request, body.texts, results)
         return BatchResponse(results=results, model_version=service.info.version)
+
+    # ---- the web page: one HTML file and its assets, served by the same process ---------
+    # Same origin as the API, so no CORS and no second host to secure.
+    @app.get("/", include_in_schema=False)
+    def index():
+        return FileResponse(WEB / "index.html", media_type="text/html; charset=utf-8")
+
+    app.mount("/assets", StaticFiles(directory=WEB), name="assets")
 
     return app
 

@@ -16,6 +16,7 @@
 !thikana/features.py
 !thikana/model.py
 !thikana/api/
+!thikana/web/
 
 # the production model and its sidecar (vocabulary + feature flags). The models/
 # folder is gitignored, so it must be built first: python -m thikana.training.train_all

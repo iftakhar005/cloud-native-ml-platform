@@ -119,6 +119,7 @@ Every error has one shape. Switch on `code`; quote `request_id` to find the log 
 | 422 | `invalid_request` | wrong shape or type, a missing field, or an unknown field |
 | 404 / 405 | `not_found` / `method_not_allowed` | |
 | 413 | `body_too_large` | `Content-Length` over `THIKANA_MAX_BODY_BYTES` |
+| 429 | `rate_limited` | over `THIKANA_RATE_LIMIT_PER_MINUTE` (off by default); `Retry-After` says how long |
 | 503 | `model_not_ready` | no model loaded |
 | 500 | `internal_error` | a bug; the message never contains your text |
 
@@ -142,7 +143,19 @@ flags, in Kubernetes a ConfigMap.
 | `THIKANA_GIT_SHA` | `unknown` | stamped by the build; shown by `/api/v1/model` |
 | `THIKANA_INSTANCE` | the machine's hostname | which replica answered; sent in the `X-Thikana-Instance` response header. The hostname is the pod name in Kubernetes and the container id in Docker. 1-63 characters from `A-Z a-z 0-9 . _ -`; anything else fails at startup because the value goes into an HTTP header. Set it to something neutral to hide the pod name |
 
+For a deployment on the open internet (read `docs/public-hosting.md` first):
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `THIKANA_PUBLIC_MODE` | `false` | `true` makes `/metrics`, `/docs`, `/redoc` and `/openapi.json` return 404 and stops sending `X-Thikana-Instance`. The cluster leaves it off because Prometheus needs `/metrics` |
+| `THIKANA_RATE_LIMIT_PER_MINUTE` | `0` (off) | per-client limit on `/api/*` only (never the page, `/healthz`, `/readyz` or `/metrics`); a 429 with `Retry-After` beyond it |
+| `THIKANA_RATE_LIMIT_BURST` | `20` | requests a client may make at once before the steady rate applies |
+| `THIKANA_TRUSTED_PROXY_HOPS` | `0` | how many proxies in front of the service append to `X-Forwarded-For`. `0` ignores the header and rate-limits the socket peer (behind a proxy that means one shared bucket: annoying, not exploitable). Set it only after checking how your host behaves |
+
 A bad value fails at startup with a message naming the variable.
+
+The web page is served at `/` (static files under `/assets/`, strict CSP, nothing loaded from other
+hosts); it is the same process as the API, so there is no CORS and no second service.
 
 Every response carries `X-Request-ID` (echoed if valid, else generated) and
 `X-Thikana-Instance`. The second exists so that behind a load balancer you can see

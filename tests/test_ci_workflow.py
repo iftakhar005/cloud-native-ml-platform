@@ -139,6 +139,27 @@ def test_the_smoke_test_runs_the_image_as_kubernetes_will():
     assert "git_sha" in smoke and "10001:10001" in smoke
 
 
+def test_the_image_is_smoke_tested_as_it_will_run_on_the_public_internet():
+    step = steps(IMAGE)[index_of(IMAGE, "--name smoke-public")]
+    run = step["run"]
+    assert "THIKANA_PUBLIC_MODE=true" in run
+    for flag in ("--read-only", "--cap-drop ALL", "--security-opt no-new-privileges"):
+        assert flag in run
+    for hidden in ("/metrics", "/docs", "/openapi.json"):
+        assert f'"$(status {hidden})" = "404"' in run              # absent to a stranger
+    assert 'status /)" = "200"' in run and "content-security-policy" in run
+    assert index_of(IMAGE, "--name smoke-public") < index_of(IMAGE, "docker save")   # before the scan and publish
+
+
+def test_no_smoke_check_uses_a_bang_which_bash_dash_e_ignores():
+    # `! cmd` inside `bash -e` never fails the script, so a "must NOT be present" check written
+    # that way would pass even when it should fail.
+    for job in WF["jobs"].values():
+        for s in steps(job):
+            for line in s.get("run", "").splitlines():
+                assert not line.strip().startswith("! "), f"{s.get('name')}: {line.strip()}"
+
+
 @pytest.mark.parametrize("secretish", [r"ghp_[A-Za-z0-9]{20,}", r"github_pat_", r"AKIA[0-9A-Z]{16}",
                                        r"-----BEGIN [A-Z ]*PRIVATE KEY"])
 def test_no_credential_is_pasted_into_the_workflow(secretish):
