@@ -12,11 +12,18 @@ postcode file lacks (230 of the 492), because the generator builds addresses
 from places and the postcode file alone can never teach those names. Vocabulary
 comes from the full reference tables.
 
-Same hyperparameters and the same number of training examples as the split
-models, so the only differences are name coverage and the vocabulary.
+Same hyperparameters as the split models. The number of training examples is NOT
+the same any more: the split models keep DATASET_SIZES["train"] (4,000), so earlier
+experiments stay comparable, but production trains on PRODUCTION_EXAMPLES (8,000).
+Why, measured over three training seeds (docs/results.md, "The village / union fix"):
+at 4,000 examples the same recipe landed anywhere from 0.891 to 0.921 on hand-written
+v3 depending on the seed alone, so one lucky or unlucky run decided the quality gate;
+at 8,000 all three seeds passed every floor and v4 rose from 0.88-0.89 to 0.91.
 
-PRODUCTION_MODEL is the adopted model (decision: district memory, adopted after
-it led v1 on the fresh v3 set; see docs/results.md).
+PRODUCTION_MODEL is the adopted model. It was district memory (adopted after it led v1 on
+the fresh v3 set); since 2026-10-28 it is district memory PLUS the full-table vocabulary
+features, chosen over three training seeds on v1-v6 with v7 held back (docs/results.md,
+"Making it better").
 """
 
 from __future__ import annotations
@@ -27,11 +34,11 @@ import sys
 from thikana.text import normalize_token
 from thikana.training.evaluate import REPORTS
 from thikana.training.gazetteer import load_all
-from thikana.training.synth import (DATASET_SEEDS, DATASET_SIZES, build_all_places,
-                                    build_places, generate)
+from thikana.training.synth import DATASET_SEEDS, build_all_places, build_places, generate
 from thikana.training.train import HYPERPARAMS, MODELS, build_vocab_full, train_model
 
-PRODUCTION_MODEL = "crf_all_district_memory"
+PRODUCTION_MODEL = "crf_all_district_memory_vocab"
+PRODUCTION_EXAMPLES = 8000
 
 
 def main() -> None:
@@ -40,7 +47,7 @@ def main() -> None:
     postcode_places = build_places(frames)
     places = build_all_places(frames)
     vocab = build_vocab_full(frames)
-    examples = generate(places, DATASET_SIZES["train"], DATASET_SEEDS["train"])
+    examples = generate(places, PRODUCTION_EXAMPLES, DATASET_SEEDS["train"])
 
     covered = {(p.district.lower(), p.upazila.lower()) for p in places if p.upazila_admin}
     # A place being IN THE POOL is not the same as appearing in the EXAMPLES: with
@@ -61,6 +68,7 @@ def main() -> None:
     for name, v, memory in (
             ("crf_all_v1_surface_context", None, False),
             ("crf_all_district_memory", {"district": vocab["district"]}, True),
+            ("crf_all_district_memory_vocab", vocab, True),
             ("crf_all_gazetteer", vocab, False)):
         path = MODELS / f"{name}.crfsuite"
         seconds = train_model(examples, path, v, memory)

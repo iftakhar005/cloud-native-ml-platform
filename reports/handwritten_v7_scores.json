@@ -1,0 +1,643 @@
+{
+  "WARNING": "HAND-WRITTEN by an AI assistant, NOT real addresses; same author as the generator, so the gap is probably a lower bound on the real one",
+  "addresses": 51,
+  "scores": {
+    "rule_baseline": {
+      "per_label": {
+        "HOUSE": {
+          "precision": 1.0,
+          "recall": 0.9,
+          "f1": 0.9473684210526316,
+          "support": 10
+        },
+        "ROAD": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 6
+        },
+        "BLOCK": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 1
+        },
+        "AREA": {
+          "precision": 0.9534883720930233,
+          "recall": 0.9761904761904762,
+          "f1": 0.9647058823529412,
+          "support": 42
+        },
+        "UPAZILA": {
+          "precision": 0.9666666666666667,
+          "recall": 0.9666666666666667,
+          "f1": 0.9666666666666667,
+          "support": 30
+        },
+        "DISTRICT": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 50
+        },
+        "DIVISION": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 5
+        },
+        "POSTCODE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        "LANDMARK": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 2
+        }
+      },
+      "micro": {
+        "precision": 0.9805194805194806,
+        "recall": 0.9805194805194806,
+        "f1": 0.9805194805194806,
+        "support": 154
+      },
+      "macro_f1": 0.9865267744524711
+    },
+    "crf_v1_surface_context": {
+      "per_label": {
+        "HOUSE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 10
+        },
+        "ROAD": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 6
+        },
+        "BLOCK": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 1
+        },
+        "AREA": {
+          "precision": 0.7,
+          "recall": 0.5,
+          "f1": 0.5833333333333334,
+          "support": 42
+        },
+        "UPAZILA": {
+          "precision": 0.4857142857142857,
+          "recall": 0.5666666666666667,
+          "f1": 0.523076923076923,
+          "support": 30
+        },
+        "DISTRICT": {
+          "precision": 0.8571428571428571,
+          "recall": 0.96,
+          "f1": 0.9056603773584904,
+          "support": 50
+        },
+        "DIVISION": {
+          "precision": 0.6666666666666666,
+          "recall": 0.8,
+          "f1": 0.7272727272727272,
+          "support": 5
+        },
+        "POSTCODE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        "LANDMARK": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 2
+        }
+      },
+      "micro": {
+        "precision": 0.7597402597402597,
+        "recall": 0.7597402597402597,
+        "f1": 0.7597402597402597,
+        "support": 154
+      },
+      "macro_f1": 0.8599270401157193
+    },
+    "crf_district_memory": {
+      "per_label": {
+        "HOUSE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 10
+        },
+        "ROAD": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 6
+        },
+        "BLOCK": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 1
+        },
+        "AREA": {
+          "precision": 0.6451612903225806,
+          "recall": 0.47619047619047616,
+          "f1": 0.547945205479452,
+          "support": 42
+        },
+        "UPAZILA": {
+          "precision": 0.4634146341463415,
+          "recall": 0.6333333333333333,
+          "f1": 0.5352112676056339,
+          "support": 30
+        },
+        "DISTRICT": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 50
+        },
+        "DIVISION": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 5
+        },
+        "POSTCODE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        "LANDMARK": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 2
+        }
+      },
+      "micro": {
+        "precision": 0.7857142857142857,
+        "recall": 0.7857142857142857,
+        "f1": 0.7857142857142857,
+        "support": 154
+      },
+      "macro_f1": 0.8981284970094541
+    },
+    "crf_all_v1_surface_context": {
+      "per_label": {
+        "HOUSE": {
+          "precision": 1.0,
+          "recall": 0.9,
+          "f1": 0.9473684210526316,
+          "support": 10
+        },
+        "ROAD": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 6
+        },
+        "BLOCK": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 1
+        },
+        "AREA": {
+          "precision": 0.8809523809523809,
+          "recall": 0.8809523809523809,
+          "f1": 0.8809523809523809,
+          "support": 42
+        },
+        "UPAZILA": {
+          "precision": 0.8620689655172413,
+          "recall": 0.8333333333333334,
+          "f1": 0.847457627118644,
+          "support": 30
+        },
+        "DISTRICT": {
+          "precision": 0.9423076923076923,
+          "recall": 0.98,
+          "f1": 0.9607843137254902,
+          "support": 50
+        },
+        "DIVISION": {
+          "precision": 0.8,
+          "recall": 0.8,
+          "f1": 0.8000000000000002,
+          "support": 5
+        },
+        "POSTCODE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        "LANDMARK": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 2
+        }
+      },
+      "micro": {
+        "precision": 0.9155844155844156,
+        "recall": 0.9155844155844156,
+        "f1": 0.9155844155844156,
+        "support": 154
+      },
+      "macro_f1": 0.937395860316572
+    },
+    "crf_all_district_memory": {
+      "per_label": {
+        "HOUSE": {
+          "precision": 1.0,
+          "recall": 0.9,
+          "f1": 0.9473684210526316,
+          "support": 10
+        },
+        "ROAD": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 6
+        },
+        "BLOCK": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 1
+        },
+        "AREA": {
+          "precision": 0.8444444444444444,
+          "recall": 0.9047619047619048,
+          "f1": 0.8735632183908046,
+          "support": 42
+        },
+        "UPAZILA": {
+          "precision": 0.8571428571428571,
+          "recall": 0.8,
+          "f1": 0.8275862068965518,
+          "support": 30
+        },
+        "DISTRICT": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 50
+        },
+        "DIVISION": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 5
+        },
+        "POSTCODE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        "LANDMARK": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 2
+        }
+      },
+      "micro": {
+        "precision": 0.9285714285714286,
+        "recall": 0.9285714285714286,
+        "f1": 0.9285714285714286,
+        "support": 154
+      },
+      "macro_f1": 0.9609464273711098
+    },
+    "crf_all_gazetteer": {
+      "per_label": {
+        "HOUSE": {
+          "precision": 1.0,
+          "recall": 0.9,
+          "f1": 0.9473684210526316,
+          "support": 10
+        },
+        "ROAD": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 6
+        },
+        "BLOCK": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 1
+        },
+        "AREA": {
+          "precision": 0.9333333333333333,
+          "recall": 1.0,
+          "f1": 0.9655172413793104,
+          "support": 42
+        },
+        "UPAZILA": {
+          "precision": 1.0,
+          "recall": 0.9333333333333333,
+          "f1": 0.9655172413793104,
+          "support": 30
+        },
+        "DISTRICT": {
+          "precision": 0.98,
+          "recall": 0.98,
+          "f1": 0.98,
+          "support": 50
+        },
+        "DIVISION": {
+          "precision": 0.8,
+          "recall": 0.8,
+          "f1": 0.8000000000000002,
+          "support": 5
+        },
+        "POSTCODE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        "LANDMARK": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 2
+        }
+      },
+      "micro": {
+        "precision": 0.9675324675324676,
+        "recall": 0.9675324675324676,
+        "f1": 0.9675324675324676,
+        "support": 154
+      },
+      "macro_f1": 0.9620447670901391
+    },
+    "crf_all_district_memory_vocab": {
+      "per_label": {
+        "HOUSE": {
+          "precision": 1.0,
+          "recall": 0.9,
+          "f1": 0.9473684210526316,
+          "support": 10
+        },
+        "ROAD": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 6
+        },
+        "BLOCK": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 1
+        },
+        "AREA": {
+          "precision": 0.9333333333333333,
+          "recall": 1.0,
+          "f1": 0.9655172413793104,
+          "support": 42
+        },
+        "UPAZILA": {
+          "precision": 1.0,
+          "recall": 0.9333333333333333,
+          "f1": 0.9655172413793104,
+          "support": 30
+        },
+        "DISTRICT": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 50
+        },
+        "DIVISION": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 5
+        },
+        "POSTCODE": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 8
+        },
+        "LANDMARK": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 2
+        }
+      },
+      "micro": {
+        "precision": 0.9805194805194806,
+        "recall": 0.9805194805194806,
+        "f1": 0.9805194805194806,
+        "support": 154
+      },
+      "macro_f1": 0.9864892115345837
+    }
+  },
+  "chosen_model": "crf_all_district_memory_vocab",
+  "synthetic_dev_scores": {
+    "rule_baseline": 0.8724194880264244,
+    "crf_v1_surface_context": 0.9588587967748604,
+    "crf_district_memory": 0.9629782833505689
+  },
+  "paired_bootstrap_micro_f1": {
+    "crf_all_district_memory_vocab minus rule_baseline": {
+      "mean": -0.00014195426412956614,
+      "low": -0.019230769230769273,
+      "high": 0.019354838709677358,
+      "resamples": 1000
+    },
+    "crf_all_district_memory_vocab minus crf_all_district_memory": {
+      "mean": 0.05264421884102276,
+      "low": 0.01851851851851849,
+      "high": 0.09523809523809523,
+      "resamples": 1000
+    },
+    "crf_all_district_memory_vocab minus crf_all_gazetteer": {
+      "mean": 0.013051325271759001,
+      "low": 0.0,
+      "high": 0.032467532467532534,
+      "resamples": 1000
+    },
+    "crf_all_v1_surface_context minus crf_v1_surface_context": {
+      "mean": 0.15536743724164068,
+      "low": 0.08805031446540879,
+      "high": 0.2272727272727273,
+      "resamples": 1000
+    }
+  },
+  "by_style": {
+    "T-bnvillage": {
+      "n": 8,
+      "rule_baseline": 1.0,
+      "crf_v1_surface_context": 0.5555555555555556,
+      "crf_district_memory": 0.5555555555555556,
+      "crf_all_v1_surface_context": 0.8333333333333334,
+      "crf_all_district_memory": 0.8333333333333334,
+      "crf_all_gazetteer": 1.0,
+      "crf_all_district_memory_vocab": 1.0
+    },
+    "T-bnpair": {
+      "n": 8,
+      "rule_baseline": 1.0,
+      "crf_v1_surface_context": 0.7241379310344829,
+      "crf_district_memory": 0.6896551724137931,
+      "crf_all_v1_surface_context": 0.9310344827586207,
+      "crf_all_district_memory": 0.9310344827586207,
+      "crf_all_gazetteer": 1.0,
+      "crf_all_district_memory_vocab": 1.0
+    },
+    "T-bnmixed": {
+      "n": 5,
+      "rule_baseline": 1.0,
+      "crf_v1_surface_context": 0.6,
+      "crf_district_memory": 0.6666666666666666,
+      "crf_all_v1_surface_context": 0.9333333333333333,
+      "crf_all_district_memory": 0.9333333333333333,
+      "crf_all_gazetteer": 1.0,
+      "crf_all_district_memory_vocab": 1.0
+    },
+    "R-upazila-bn": {
+      "n": 7,
+      "rule_baseline": 1.0,
+      "crf_v1_surface_context": 1.0,
+      "crf_district_memory": 1.0,
+      "crf_all_v1_surface_context": 0.8888888888888888,
+      "crf_all_district_memory": 0.8888888888888888,
+      "crf_all_gazetteer": 0.9444444444444444,
+      "crf_all_district_memory_vocab": 1.0
+    },
+    "R-upazila-en": {
+      "n": 8,
+      "rule_baseline": 1.0,
+      "crf_v1_surface_context": 0.5263157894736842,
+      "crf_district_memory": 0.5789473684210527,
+      "crf_all_v1_surface_context": 0.8947368421052632,
+      "crf_all_district_memory": 0.9473684210526315,
+      "crf_all_gazetteer": 0.9473684210526315,
+      "crf_all_district_memory_vocab": 0.9473684210526315
+    },
+    "R-general": {
+      "n": 6,
+      "rule_baseline": 1.0,
+      "crf_v1_surface_context": 0.9666666666666667,
+      "crf_district_memory": 1.0,
+      "crf_all_v1_surface_context": 0.9666666666666667,
+      "crf_all_district_memory": 1.0,
+      "crf_all_gazetteer": 0.9666666666666667,
+      "crf_all_district_memory_vocab": 1.0
+    },
+    "R-urban": {
+      "n": 2,
+      "rule_baseline": 0.8000000000000002,
+      "crf_v1_surface_context": 1.0,
+      "crf_district_memory": 1.0,
+      "crf_all_v1_surface_context": 1.0,
+      "crf_all_district_memory": 1.0,
+      "crf_all_gazetteer": 1.0,
+      "crf_all_district_memory_vocab": 1.0
+    },
+    "F-reversed": {
+      "n": 2,
+      "rule_baseline": 1.0,
+      "crf_v1_surface_context": 0.5,
+      "crf_district_memory": 0.8333333333333334,
+      "crf_all_v1_surface_context": 0.8333333333333334,
+      "crf_all_district_memory": 0.8333333333333334,
+      "crf_all_gazetteer": 1.0,
+      "crf_all_district_memory_vocab": 1.0
+    },
+    "F-landmark": {
+      "n": 1,
+      "rule_baseline": 1.0,
+      "crf_v1_surface_context": 0.6666666666666666,
+      "crf_district_memory": 0.6666666666666666,
+      "crf_all_v1_surface_context": 1.0,
+      "crf_all_district_memory": 1.0,
+      "crf_all_gazetteer": 1.0,
+      "crf_all_district_memory_vocab": 1.0
+    },
+    "F-typo": {
+      "n": 2,
+      "rule_baseline": 0.6,
+      "crf_v1_surface_context": 0.8000000000000002,
+      "crf_district_memory": 0.8000000000000002,
+      "crf_all_v1_surface_context": 0.8000000000000002,
+      "crf_all_district_memory": 0.8000000000000002,
+      "crf_all_gazetteer": 0.6,
+      "crf_all_district_memory_vocab": 0.6
+    },
+    "F-english": {
+      "n": 2,
+      "rule_baseline": 1.0,
+      "crf_v1_surface_context": 1.0,
+      "crf_district_memory": 1.0,
+      "crf_all_v1_surface_context": 1.0,
+      "crf_all_district_memory": 1.0,
+      "crf_all_gazetteer": 1.0,
+      "crf_all_district_memory_vocab": 1.0
+    }
+  },
+  "by_group": {
+    "targeted": {
+      "n": 21,
+      "rule_baseline": 1.0,
+      "crf_v1_surface_context": 0.6451612903225806,
+      "crf_district_memory": 0.6451612903225806,
+      "crf_all_v1_surface_context": 0.9032258064516129,
+      "crf_all_district_memory": 0.9032258064516129,
+      "crf_all_gazetteer": 1.0,
+      "crf_all_district_memory_vocab": 1.0
+    },
+    "regression": {
+      "n": 23,
+      "rule_baseline": 0.9861111111111112,
+      "crf_v1_surface_context": 0.8611111111111112,
+      "crf_district_memory": 0.8888888888888888,
+      "crf_all_v1_surface_context": 0.9305555555555556,
+      "crf_all_district_memory": 0.9583333333333334,
+      "crf_all_gazetteer": 0.9583333333333334,
+      "crf_all_district_memory_vocab": 0.9861111111111112
+    },
+    "fresh": {
+      "n": 7,
+      "rule_baseline": 0.9,
+      "crf_v1_surface_context": 0.75,
+      "crf_district_memory": 0.85,
+      "crf_all_v1_surface_context": 0.9,
+      "crf_all_district_memory": 0.9,
+      "crf_all_gazetteer": 0.9,
+      "crf_all_district_memory_vocab": 0.9
+    }
+  },
+  "version": "v7",
+  "wrong_addresses_for_chosen_model": [
+    36,
+    48,
+    49
+  ]
+}

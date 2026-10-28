@@ -70,11 +70,14 @@ SHA up with `git ls-remote --tags https://github.com/<owner>/<repo>`).
 ## The quality gate
 
 CI retrains the model, so the published image holds a file nobody has looked at. The gate
-(`python -m thikana.training.gate`) scores it on the four hand-written sets and fails the
-job if any score is under its floor (v1 0.970, v2 0.910, v3 0.900, v4 0.880).
+(`python -m thikana.training.gate`) scores it on five hand-written sets (v1-v4 and the fresh village set v6) and fails the
+job if any score is under its floor (v1 0.970, v2 0.920, v3 0.900, v4 0.920, v6 0.950).
 
 Why behaviour and not a hash: **the Linux-trained model is not byte-identical to the
-Windows-trained one.** Measured, same code and data:
+Windows-trained one.** Measured, same code and data (on the model BEFORE the village fix of
+decision D12; the new model, `crf_all_district_memory_vocab` trained on 8,000 examples, has not been
+compared across platforms, so the first CI run after that change is its first cross-platform check, and
+the floors leave a margin for exactly that):
 
 | | SHA-256 of `.crfsuite` | predictions on 278 hand-written addresses |
 |---|---|---|

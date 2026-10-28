@@ -25,17 +25,17 @@ from thikana.training.train import MODELS
 # Sets from v4 on are scored in the DEPLOYMENT setting: the baseline and the
 # production models know every gazetteer record. The split-trained models stay in
 # as controls, so any gain from full coverage is measured, not assumed.
-FULL_DATA_VERSIONS = {"v4"}
+FULL_DATA_VERSIONS = {"v4", "v5", "v6", "v7"}
 SPLIT_MODELS = ("crf_v1_surface_context", "crf_v2_plus_gazetteer", "crf_district_memory")
 FULL_MODELS = ("crf_v1_surface_context", "crf_district_memory", "crf_all_v1_surface_context",
-               "crf_all_district_memory", "crf_all_gazetteer")
+               "crf_all_district_memory", "crf_all_gazetteer", "crf_all_district_memory_vocab")
 
 
 def main() -> None:
     sys.stdout.reconfigure(encoding="utf-8")
     version = sys.argv[1] if len(sys.argv) > 1 else "v1"
     full = version in FULL_DATA_VERSIONS
-    chosen = "crf_all_district_memory" if full else "crf_v1_surface_context"
+    chosen = "crf_all_district_memory_vocab" if full else "crf_v1_surface_context"
     items, variants = load(path_for(version))
     problems = audit(items, variants)
     if problems:
@@ -74,9 +74,9 @@ def main() -> None:
         print(f"{label:10s}{row}{scores[chosen]['per_label'][label]['support']:6d}")
 
     comparisons = {}
-    pairs = ((("rule_baseline", "crf_all_district_memory"),
-              ("crf_all_v1_surface_context", "crf_all_district_memory"),
-              ("crf_district_memory", "crf_all_district_memory"),
+    pairs = ((("rule_baseline", "crf_all_district_memory_vocab"),
+              ("crf_all_district_memory", "crf_all_district_memory_vocab"),
+              ("crf_all_gazetteer", "crf_all_district_memory_vocab"),
               ("crf_v1_surface_context", "crf_all_v1_surface_context")) if full else
              (("rule_baseline", "crf_v1_surface_context"),
               ("crf_v1_surface_context", "crf_v2_plus_gazetteer"),

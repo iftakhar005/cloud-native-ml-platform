@@ -1,12 +1,12 @@
 {
   "what": "models trained on EVERY gazetteer record; no held-out names, so synthetic dev numbers would be in-sample and are deliberately not reported",
-  "production_model": "crf_all_district_memory",
+  "production_model": "crf_all_district_memory_vocab",
   "postcode_records": 1349,
   "upazila_only_places": 230,
   "admin_upazilas_in_place_pool": 492,
-  "upazila_name_forms_appearing_in_examples": 475,
+  "upazila_name_forms_appearing_in_examples": 618,
   "upazila_name_forms_possible": 958,
-  "training_examples": 4000,
+  "training_examples": 8000,
   "hyperparams": {
     "c1": 0.1,
     "c2": 0.05,
@@ -15,22 +15,32 @@
   },
   "models": {
     "crf_all_v1_surface_context": {
-      "train_seconds": 26.9,
-      "model_bytes": 508840,
+      "train_seconds": 28.7,
+      "model_bytes": 705424,
       "memory": false,
       "vocab_kinds": []
     },
     "crf_all_district_memory": {
-      "train_seconds": 30.7,
-      "model_bytes": 457768,
+      "train_seconds": 31.6,
+      "model_bytes": 651092,
       "memory": true,
       "vocab_kinds": [
         "district"
       ]
     },
+    "crf_all_district_memory_vocab": {
+      "train_seconds": 31.4,
+      "model_bytes": 520768,
+      "memory": true,
+      "vocab_kinds": [
+        "district",
+        "division",
+        "upazila"
+      ]
+    },
     "crf_all_gazetteer": {
-      "train_seconds": 18.6,
-      "model_bytes": 393724,
+      "train_seconds": 28.1,
+      "model_bytes": 545924,
       "memory": false,
       "vocab_kinds": [
         "district",

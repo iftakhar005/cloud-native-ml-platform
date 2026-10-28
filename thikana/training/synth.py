@@ -99,6 +99,7 @@ INTRODUCERS = {
     "thana": (("Thana", "P.S", "PS", "Upazila", "Upazilla", "Police Station"),
               ("থানা", "উপজেলা")),
     "district": (("Dist", "District", "Zila"), ("জেলা",)),
+    "union": (("Union", "Union Parishad", "UP"), ("ইউনিয়ন", "ইউনিয়ন পরিষদ")),   # decision D12
 }
 INTRO_CONNECTORS = (": ", "- ", ":", "-", ". ", " ")
 
@@ -111,6 +112,28 @@ REVERSED_RATE = 0.10
 SHOP_LEVEL_RATE = 0.07   # decision D10: Shop / Level are O
 WARD_RATE = 0.06         # decision D10: Ward is AREA
 DIVISION_RATE = 0.30
+
+# Decision D12: a bare Bangla village / union name is AREA. The gazetteer has no Bangla names
+# for post offices, so the generator used to write every rural area in Latin script, and every
+# Bangla place name it ever showed the model that was not a city neighbourhood was an UPAZILA.
+# The model learned "an unknown Bangla name is an upazila". These names are a hand-written
+# AUGMENTATION, NOT observed data: invented stem + suffix combinations that read like village
+# names. They are checked against the gazetteer (never a real upazila, district or division) and
+# tests keep them disjoint from the hand-written evaluation sets.
+BN_VILLAGE_STEMS = (
+    "জাম", "বট", "তেঁতুল", "নারকেল", "সুপারি", "হিজল", "শিমুল", "পলাশ", "শিরীষ", "কদম", "করবী",
+    "মান্দার", "জারুল", "রতন", "কৃষ্ণ", "গোবিন্দ", "হরি", "লক্ষ্মী", "দুর্গা", "কালী", "নারায়ণ", "মধু",
+    "শশী", "নূর", "করিম", "রহিম", "আলী", "হাজী", "মোল্লা", "মুন্সী", "সরদার", "ফকির", "চৌধুরী",
+    "ঠাকুর", "নদী", "বিল", "হাওর", "খাল", "দীঘি", "কাদা", "বালি", "শাপলা", "পদ্ম", "বাঘ", "হাতি",
+    "ময়না", "টিয়া", "বক", "হংস", "ধান", "পাট", "আখ", "সরিষা", "ডুমুর", "বাবলা", "কড়ই", "ঝাউ",
+)
+BN_VILLAGE_SUFFIXES = (
+    "পাড়া", "পুর", "গাঁও", "ডাঙ্গা", "তলা", "বাড়ী", "হাটি", "খালী", "দিয়া", "নগর", "কান্দি",
+    "ঘাট", "মারি", "চর",
+)
+BN_VILLAGE_PREFIXES = ("উত্তর", "দক্ষিণ", "পূর্ব", "পশ্চিম", "বড়", "ছোট", "নতুন", "পুরাতন")
+BN_VILLAGE_RATE = 0.8        # a rural area written in Bangla script gets a Bangla name this often
+VILLAGE_PAIR_RATE = 0.15     # village AND union / post office, both bare: "Kuhn, Ghoramara, Savar, Dhaka"
 
 
 @dataclass(frozen=True)
@@ -322,6 +345,31 @@ def _intro(kind: str, bangla: bool, rng: random.Random) -> str:
     return rng.choice(words) + rng.choice(INTRO_CONNECTORS)
 
 
+def _latin_village(rng: random.Random, places, avoid: frozenset[str]) -> str | None:
+    """A real post-office name that is NOT also an upazila, district or division name.
+
+    A bare name labelled AREA must not be one the model is also told is an UPAZILA (a third of
+    post offices are named like their upazila), or it learns that real upazilas are areas.
+    None when no such name turns up (a tiny pool of places), so the caller leaves it out."""
+    for _ in range(30):
+        name = rng.choice(places).area
+        if normalize_token(name).lower() not in avoid:
+            return _latin(name, rng)
+    return None
+
+
+def _bn_village(rng: random.Random, avoid: frozenset[str]) -> str:
+    """A made-up Bangla village name that is not any gazetteer name (decision D12)."""
+    name = ""
+    for _ in range(30):
+        name = rng.choice(BN_VILLAGE_STEMS) + rng.choice(BN_VILLAGE_SUFFIXES)
+        if rng.random() < 0.15:
+            name = rng.choice(BN_VILLAGE_PREFIXES) + " " + name
+        if normalize_token(name).lower() not in avoid:
+            break
+    return _keyboard_form(name, rng)
+
+
 def _landmark(rng, bn, head_en, head_bn):
     """A landmark built from pieces, so the model learns the pattern, not 5 names."""
     facility_en, facility_bn = rng.choice(FACILITIES)
@@ -349,7 +397,7 @@ def _landmark(rng, bn, head_en, head_bn):
 
 # ---- assembling one address ----------------------------------------------
 
-def _one(rng, places, by_district, urban_pool) -> Example:
+def _one(rng, places, by_district, urban_pool, avoid=frozenset()) -> Example:
     mode = rng.choices(("en", "bn", "mixed"), (0.6, 0.15, 0.25))[0]
     urban = bool(urban_pool) and rng.random() < 0.5
     form = (not urban) and rng.random() < FORM_STYLE_RATE
@@ -387,13 +435,24 @@ def _one(rng, places, by_district, urban_pool) -> Example:
         chunks.insert(rng.randint(0, len(chunks)), landmark)
 
     if form:  # a village line, as on a paper form: "Vill: X, P.O: Y, ..."
-        village = _latin(rng.choice(places).area, rng)
+        if _pick_script(mode, rng) and rng.random() < BN_VILLAGE_RATE:
+            village = _bn_village(rng, avoid)
+        else:
+            village = _latin(rng.choice(places).area, rng)
         chunks.append([*intro("village", always=True), (village, "AREA")])
+        if rng.random() < 0.3:                       # decision D12: "Union: X" is introducer + AREA
+            union = (_bn_village(rng, avoid) if _pick_script(mode, rng) and rng.random() < BN_VILLAGE_RATE
+                     else _latin_village(rng, places, avoid))
+            if union is not None:
+                chunks.append([*intro("union", always=True), (union, "AREA")])
     if not urban and rng.random() < WARD_RATE:
         chunks.append([(_ward(rng, _pick_script(mode, rng)), "AREA")])
 
     use_bn = area_bn is not None and _pick_script(mode, rng)
     area = _keyboard_form(area_bn, rng) if use_bn else _latin(area_en, rng)
+    bn_village = False
+    if not urban and not form and area_bn is None and _pick_script(mode, rng)             and rng.random() < BN_VILLAGE_RATE:
+        area, bn_village = _bn_village(rng, avoid), True   # decision D12
     top = NUMBERED_AREAS.get(area_en) if urban else None
     numbered = False
     if top and rng.random() < 0.6:  # decision D9
@@ -403,6 +462,18 @@ def _one(rng, places, by_district, urban_pool) -> Example:
         area = _numbered(area, rng.randint(1, 9), False, rng)
         numbered = True
     area_chunk = [*(intro("post", always=form) if not urban else []), (area, "AREA")]
+    shares_name = place.upazila_admin and place.area.lower() == place.upazila.lower()
+    if not urban and not form and not shares_name and rng.random() < VILLAGE_PAIR_RATE:
+        # decision D12: a village AND a union / post office, both bare, so two AREA spans in a row
+        # (always comma-joined: "Kuhn Ghoramara" has no visible boundary a person could label).
+        # Not when the post office is named like its upazila: D11 decides that name's role, and a
+        # pair would label an upazila-named place AREA, teaching real upazilas to be areas.
+        if _pick_script(mode, rng) and rng.random() < BN_VILLAGE_RATE:
+            first = _bn_village(rng, avoid)
+        else:
+            first = _latin_village(rng, places, avoid)
+        if first is not None:
+            area_chunk = [(first, "AREA"), (", ", None), *area_chunk]
     # Real addresses often have no area: "Savar, Dhaka-1340", "House 5, Road 3,
     # Dhaka". Dropping it is what makes an upazila-FIRST address (0.9% of the old
     # training data) and a district right after a house / road / landmark (4-17
@@ -430,7 +501,8 @@ def _one(rng, places, by_district, urban_pool) -> Example:
     # administrative upazila (32% of them are), a name that appears ONCE is the
     # UPAZILA; if both appear, the first is the post office (AREA) and the second
     # the UPAZILA (as in D1); a "P.O:" introducer or a number marks it as AREA.
-    collides = (not urban and place.upazila_admin and not numbered and len(area_chunk) == 1
+    collides = (not urban and place.upazila_admin and not numbered and not bn_village
+                and len(area_chunk) == 1
                 and place.area.lower() == place.upazila.lower())
     solo_area = [(area, "UPAZILA")] if collides else area_chunk
     if area_index is not None and not upazila_kept and collides:
@@ -500,10 +572,16 @@ def generate(places, n: int, seed: int, exclude=frozenset()) -> list[Example]:
     for p in places:
         by_district[p.district].append(p)
     urban_pool = [a for a in URBAN_AREAS if a[2] in by_district]
+    # every Bangla place name the reference tables hold: a made-up village must never equal one
+    avoid = frozenset(normalize_token(n).lower() for p in places if p.upazila_admin
+                      for n in (p.upazila, p.upazila_bn) if n) | frozenset(
+        normalize_token(n).lower() for p in places
+        for n in (p.district, p.district_bn, p.division, p.division_bn) if n) | frozenset(
+        normalize_token(a[1]).lower() for a in URBAN_AREAS)
 
     seen, out = set(exclude), []
     for _ in range(50 * n):
-        example = _one(rng, places, by_district, urban_pool)
+        example = _one(rng, places, by_district, urban_pool, avoid)
         if example.text not in seen:
             seen.add(example.text)
             out.append(example)

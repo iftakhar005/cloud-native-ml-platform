@@ -1,0 +1,82 @@
+# HAND-WRITTEN evaluation set v7. NOT REAL ADDRESSES. Written by an AI assistant AFTER the village /
+# union fix (D12) and BEFORE choosing between the candidate production models, and SEALED: nothing
+# is tuned against it. v1-v6 are used to choose; this set gives the first unbiased number for the
+# chosen model. Labels follow docs/label-schema.md (D1-D12).
+#
+# Wider than v6 on purpose: bare village / union names, real upazilas that must stay UPAZILA, and
+# ordinary addresses (house, road, block, landmark, postcode, typos, reversed order) so a change
+# that fixes villages cannot hide a loss elsewhere. Invented village names appear in no gazetteer
+# file and are ones the generator cannot write (tests check both).
+#
+# Style tags:  T-*  TARGETED   bare village / union names, no cue word
+#              R-*  REGRESSION GUARD
+#              F-*  FRESH      not trained for
+# Scored once for the chosen model; never used to tune. See README.md here.
+#
+# Format:  style ::: annotated address      annotation = {LABEL|surface text}
+# A literal \n is a line break. Text outside braces is O.
+
+#variants: araihazaar
+
+# ---- T-bnvillage
+T-bnvillage ::: {AREA|আবাদপুর}, {AREA|মাঝিপাড়া}
+T-bnvillage ::: {AREA|কাঁঠালতলী}, {DISTRICT|গাইবান্ধা}
+T-bnvillage ::: {AREA|খড়িবাড়ী}, {DISTRICT|শেরপুর}
+T-bnvillage ::: {AREA|ভাঙ্গাপাড়া}, {DISTRICT|সিলেট}-{POSTCODE|৩১০০}
+T-bnvillage ::: {AREA|মালঞ্চী}, {DISTRICT|কিশোরগঞ্জ}
+T-bnvillage ::: {AREA|সাতঘরিয়া}, {DISTRICT|গোপালগঞ্জ}
+T-bnvillage ::: {AREA|রঘুনাথপুর}, {DISTRICT|দিনাজপুর}, {DIVISION|রংপুর}
+T-bnvillage ::: {AREA|কুমিরমারী}, {DISTRICT|খুলনা}
+
+# ---- T-bnpair
+T-bnpair ::: {AREA|নোয়াপাড়া}, {UPAZILA|আড়াইহাজার}, {DISTRICT|নারায়াণগঞ্জ}
+T-bnpair ::: {AREA|বাদামতলী}, {AREA|তুলসীগঙ্গা}, {UPAZILA|কোম্পানিগঞ্জ}, {DISTRICT|সিলেট}
+T-bnpair ::: {AREA|ধুলিয়াপাড়া}, {UPAZILA|সুল্লা}, {DISTRICT|সুনামগঞ্জ}
+T-bnpair ::: {AREA|কেশবদিয়া}, {UPAZILA|মিঠামাইন}, {DISTRICT|কিশোরগঞ্জ}-{POSTCODE|২৩৯০}
+T-bnpair ::: {AREA|পানিহাটি}, {AREA|সিন্দুরিয়া}, {UPAZILA|কাশিয়ানি}, {DISTRICT|গোপালগঞ্জ}
+T-bnpair ::: {AREA|হাটখোলা}, {UPAZILA|বোচাগঞ্জ}, {DISTRICT|দিনাজপুর}, {DIVISION|রংপুর}
+T-bnpair ::: {AREA|গোপীনাথপুর}, {UPAZILA|ঝিনাইগাতি}, {DISTRICT|শেরপুর}
+T-bnpair ::: {AREA|শুকনাগাছি}, {AREA|মাধাইনগর}, {UPAZILA|নগরপুর}, {DISTRICT|টাঙ্গাইল}
+
+# ---- T-bnmixed
+T-bnmixed ::: {HOUSE|House 15}, {AREA|বকুলতলা}, {DISTRICT|Gaibandha}
+T-bnmixed ::: {AREA|ঘোষপাড়া}, {UPAZILA|Palashbari}, {DISTRICT|Gaibandha}
+T-bnmixed ::: {HOUSE|বাসা ৩}, {AREA|চাপড়া}, {DISTRICT|বগুড়া}
+T-bnmixed ::: {ROAD|রোড ৪}, {AREA|খাসপুর}, {DISTRICT|সিলেট}
+T-bnmixed ::: {AREA|আবাদপুর}, {UPAZILA|নন্দিগ্রাম}, {DISTRICT|Bogura}
+
+# ---- R-upazila: real upazilas must stay UPAZILA
+R-upazila-bn ::: {UPAZILA|আড়াইহাজার}, {DISTRICT|নারায়াণগঞ্জ}
+R-upazila-bn ::: {UPAZILA|কোম্পানিগঞ্জ}, {DISTRICT|সিলেট}-{POSTCODE|৩১৪০}
+R-upazila-bn ::: {HOUSE|বাসা ৫}, {UPAZILA|বাঞ্ছারামপুর}, {DISTRICT|ব্রাহ্মণবাড়িয়া}
+R-upazila-bn ::: {UPAZILA|নন্দিগ্রাম}, {DISTRICT|বগুড়া}, {DIVISION|রাজশাহী}
+R-upazila-bn ::: {UPAZILA|গাবতলি}, {DISTRICT|বগুড়া}
+R-upazila-bn ::: {UPAZILA|পলাশবাড়ী}, {DISTRICT|গাইবান্ধা}
+R-upazila-bn ::: {UPAZILA|ঝিনাইগাতি}, {DISTRICT|শেরপুর}, {DIVISION|ময়মনসিংহ}
+R-upazila-en ::: {UPAZILA|Araihazar}, {DISTRICT|Narayanganj}
+R-upazila-en ::: {UPAZILA|Companiganj}, {DISTRICT|Sylhet}-{POSTCODE|3140}
+R-upazila-en ::: {HOUSE|House 8}, {UPAZILA|Bancharampur}, {DISTRICT|Brahmanbaria}
+R-upazila-en ::: {UPAZILA|Sulla}, {DISTRICT|Sunamganj}
+R-upazila-en ::: {UPAZILA|Mithamain}, {DISTRICT|Kishoreganj}, {DIVISION|Dhaka}
+R-upazila-en ::: {UPAZILA|Kashiani}, {DISTRICT|Gopalganj}
+R-upazila-en ::: {UPAZILA|Bochaganj}, {DISTRICT|Dinajpur}
+R-upazila-en ::: {UPAZILA|Jhenaigati}, {DISTRICT|Sherpur}
+
+# ---- R-general: ordinary addresses that must not get worse
+R-general ::: {HOUSE|House 21}, {ROAD|Road 8}, {BLOCK|Block D}, {AREA|Banani}, {DISTRICT|Dhaka}-{POSTCODE|1213}
+R-general ::: {HOUSE|Flat 3C}, {HOUSE|House 14}, {ROAD|Road 2}, {AREA|Dhanmondi}, {DISTRICT|Dhaka} {POSTCODE|1209}
+R-general ::: {HOUSE|বাসা ২৩}, {ROAD|রোড ৭}, {AREA|গুলশান}, {DISTRICT|ঢাকা}-{POSTCODE|১২১২}
+R-general ::: {HOUSE|House 6}, {ROAD|Road 11}, {AREA|Uttara}, {LANDMARK|beside Uttara Lake}, {DISTRICT|Dhaka}
+R-general ::: Vill: {AREA|Gopalnagar}, P.O: {AREA|Gopalnagar}, Thana: {UPAZILA|Araihazar}, Dist: {DISTRICT|Narayanganj}
+R-general ::: গ্রাম: {AREA|ঘোষপাড়া}, ডাকঘর: {AREA|হাটখোলা}, থানা: {UPAZILA|ঝিনাইগাতি}, জেলা: {DISTRICT|শেরপুর}
+R-urban ::: {AREA|Mohammadpur}, {DISTRICT|Dhaka}
+R-urban ::: {ROAD|রোড ৩}, {AREA|ধানমন্ডি}, {DISTRICT|ঢাকা}
+
+# ---- F-: not trained for
+F-reversed ::: {DISTRICT|গাইবান্ধা}, {UPAZILA|পলাশবাড়ী}, {AREA|বকুলতলা}
+F-reversed ::: {POSTCODE|3100}, {DISTRICT|Sylhet}, {AREA|Dhulipara}
+F-landmark ::: {AREA|ভাঙ্গাপাড়া}, {LANDMARK|ভাঙ্গাপাড়া বাজারের পাশে}, {DISTRICT|সিলেট}
+F-typo ::: {HOUSE|Hosue 9}, {AREA|Banani}, {DISTRICT|Dhaka}
+F-typo ::: {UPAZILA|Araihazaar}, {DISTRICT|Narayanganj}
+F-english ::: {AREA|Ghoshpara}, {AREA|Tulshiganga}, {DISTRICT|Sylhet}
+F-english ::: {AREA|Bakultola}, {UPAZILA|Palashbari}, {DISTRICT|Gaibandha}

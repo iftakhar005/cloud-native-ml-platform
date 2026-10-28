@@ -39,7 +39,7 @@ with `-e NAME=value` or `--env-file`.
 | Packages | the 16 in `requirements/serve.txt`; no numpy, pandas or pytest |
 | Code | `thikana/api` plus `schema`, `text`, `features`, `model`; **not** `thikana/training` |
 | Web page | `thikana/web`: four static files (`index.html`, `style.css`, `render.js`, `app.js`), served at `/` by the same process |
-| Model | `crf_all_district_memory` and its sidecar, **baked in** |
+| Model | `crf_all_district_memory_vocab` and its sidecar, **baked in** |
 | User | uid 10001 `app`, no home, no login shell. Code and model are root-owned and read-only |
 | Process | one `uvicorn`, PID 1, exec-form `CMD`, so `SIGTERM` reaches it directly |
 | Health | `HEALTHCHECK` calls `/readyz` (ready means *a model is loaded*) |
@@ -135,7 +135,7 @@ Kubernetes requests and limits (to be re-measured under load).
 |---|---|
 | `error getting credentials ... docker-credential-desktop not found in %PATH%` during `docker build` | Seen when building from **Git Bash**. The build plugin cannot find Docker Desktop's credential helper. Build from PowerShell (the same command works there), or add `C:\Program Files\Docker\Docker\resources\bin` to `PATH`. Not a Dockerfile problem |
 | `curl` returns nothing right after `docker run -d` | The container is still starting and Docker's port proxy accepts then drops the connection. Retry with `curl --retry 30 --retry-delay 1 --retry-all-errors` (plain `--retry-connrefused` does not retry an empty reply) |
-| `COPY failed: file not found ... models/crf_all_district_memory.crfsuite` | The model is gitignored. Run `python -m thikana.training.train_all` first |
+| `COPY failed: file not found ... models/crf_all_district_memory_vocab.crfsuite` | The model is gitignored. Run `python -m thikana.training.train_all` first |
 | Container exits at once with `ModuleNotFoundError` | A file the code imports is missing from the `.dockerignore` allowlist or from a `COPY`. `tests/test_docker_files.py` checks the two agree |
 | Port already in use | Another container has the port. Use `-p 8800:8000` and browse to 8800 |
 

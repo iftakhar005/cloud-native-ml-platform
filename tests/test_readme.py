@@ -28,5 +28,5 @@ def test_the_readme_says_which_kubernetes_and_how_traffic_gets_in():
 
 def test_the_readme_keeps_its_honest_limits():
     for statement in ("A prototype, not a product", "synthetic addresses", "not real data",
-                      "did **not** beat the rule", "No real-address evaluation"):
+                      "are tied", "No real-address evaluation"):
         assert statement in README, statement

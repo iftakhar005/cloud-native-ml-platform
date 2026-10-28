@@ -53,4 +53,17 @@ spelling variants are declared on a `#variants:` line.
   R- regression guards, and F-novel: INVENTED names absent from every gazetteer
   file, in upazila-like positions, where the right answer is AREA. A test checks
   both guarantees.
-- Next: a fresh `addresses_v5.txt` before reporting any new number.
+- `addresses_v5.txt` - SPENT, and a DIAGNOSTIC by design. Written to measure a gap a person
+  found on the live page (bare village and union names, mostly Bangla), before the generator
+  was changed; its errors drove decision D12. It repeats a few regression guards from earlier
+  sets. Not an unbiased test.
+- `addresses_v6.txt` - the fresh set for D12, written after the generator change and before any
+  model saw it. Its invented village names are provably ones the generator cannot write, and
+  appear in no gazetteer file; tests check both. The first score after the final generator is
+  the number in docs/results.md; the quality gate has a floor on it. One late generator fix
+  (no village pair beside a post office named like its upazila) came from a unit-test failure,
+  not from v6 errors, and the model was rescored on v6 afterwards: that is disclosed there.
+- `addresses_v7.txt` - SPENT. Written AFTER the generator change and BEFORE choosing between
+  candidate production models, then sealed: the choice used v1-v6 only, and v7 was scored once
+  for the chosen model. Wider than v6 (villages, real upazilas, ordinary addresses, typos).
+- Next: a fresh `addresses_v8.txt` before reporting any new number.
