@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/iftakhar005/cloud-native-ml-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/iftakhar005/cloud-native-ml-platform/actions/workflows/ci.yml)
 
-Thikana (ঠিকানা, "address") splits one free-text Bangladeshi address, written in Bangla,
+Thikana (ঠিকানা) splits one free-text Bangladeshi address, written in Bangla,
 English or a mix, into labelled parts: house, road, block, area, upazila, district,
 division, postcode and landmark.
 
@@ -29,10 +29,6 @@ running service: Docker, Kubernetes, CI/CD, monitoring and security.
 - **The hand-written test sets are not real data.** An AI assistant wrote them from general
   knowledge of Bangladeshi addresses, and the same author wrote the generator, so the real
   error rate is probably worse than the numbers below.
-- **It labels any text.** It has no way to say "this is not an address".
-- **Known weakness:** bare village and union names with no cue word (`বুধড়া, গুনবতী`) are
-  often labelled as upazilas. With a cue word (`গ্রাম:`, `Vill:`, `Union:`) they come out as
-  areas, which is correct under the project's labelling rules.
 
 ## What is in it
 
