@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/iftakhar005/cloud-native-ml-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/iftakhar005/cloud-native-ml-platform/actions/workflows/ci.yml)
 
-Thikana (ঠিকানা, "address") splits one free-text Bangladeshi address, written in Bangla,
+Thikana (ঠিকানা) splits one free-text Bangladeshi address, written in Bangla,
 English or a mix, into labelled parts: house, road, block, area, upazila, district,
 division, postcode and landmark.
 
