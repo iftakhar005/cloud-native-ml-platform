@@ -33,6 +33,12 @@
     <button type="button" id="retry" class="secondary small" hidden>Try again</button>
   </div>
 
+  <div class="modes" role="tablist" aria-label="What to parse">
+    <button type="button" id="mode-single" class="mode" role="tab" aria-selected="true" aria-controls="single-panel">One address</button>
+    <button type="button" id="mode-files" class="mode" role="tab" aria-selected="false" aria-controls="files-panel">A file</button>
+  </div>
+
+  <div id="single-panel" role="tabpanel" aria-labelledby="mode-single">
   <form id="form" class="card" novalidate>
     <label for="text">Address to parse</label>
     <textarea id="text" name="text" rows="3" maxlength="500" autocomplete="off" spellcheck="false"
@@ -84,6 +90,31 @@
       <pre id="raw"></pre>
     </details>
   </section>
+  </div>
+
+  <section id="files-panel" class="card" role="tabpanel" aria-labelledby="mode-files" hidden>
+    <h2>Parse a file</h2>
+    <p class="hint">Choose one or more CSV, TSV or TXT files (a TXT file is one address per line). You get each file back
+    as a CSV with the parts in new columns: <code>parsed_house</code>, <code>parsed_district</code> and so on.</p>
+    <label id="drop" class="drop" for="file-input">
+      <input id="file-input" type="file" class="sr-only" multiple
+             accept=".csv,.tsv,.txt,text/csv,text/plain,text/tab-separated-values">
+      <span class="drop-title">Drop files here, or choose files</span>
+      <span id="drop-sub" class="drop-sub">CSV, TSV or TXT · up to 5 files · 500 rows each</span>
+    </label>
+    <p class="hint small">The file is read in your browser and its addresses are
+    sent to this site's parser a few at a time, the same as typing them. Nothing is stored. PDF and Excel files are not
+    supported: in Excel, use Save As, CSV UTF-8.</p>
+    <div class="row">
+      <button type="button" id="sample" class="secondary small">Download a sample CSV</button>
+      <span class="spacer"></span>
+      <button type="button" id="files-clear" class="secondary">Clear</button>
+      <button type="button" id="files-cancel" class="secondary" hidden>Stop</button>
+      <button type="button" id="files-run" disabled><span id="files-run-label">Parse files</span></button>
+    </div>
+    <p id="files-status" class="status" role="status" aria-live="polite"></p>
+    <ul id="files" class="files"></ul>
+  </section>
 </main>
 
 <dialog id="about" aria-labelledby="about-h">
@@ -98,6 +129,7 @@
   <p><strong>Please don't type a real person's address.</strong> Use an example or a made-up one.</p>
   <ul>
     <li>This app does not store what you type and logs only counts, never the text.</li>
+    <li>The same goes for files: use made-up addresses. A file you choose is read in your browser and is never uploaded as a file. Only its addresses are sent to the parser, a few at a time, and are not stored.</li>
     <li>It runs on a free public host. That host may keep its own logs of requests, which this app cannot see or control.</li>
     <li>There are no cookies, no analytics and nothing is loaded from other sites.</li>
   </ul>

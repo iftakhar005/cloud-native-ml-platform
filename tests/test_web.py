@@ -26,8 +26,8 @@ pytestmark = pytest.mark.skipif(NODE is None, reason="Node.js not installed")
 
 def test_the_javascript_unit_tests_pass():
     # The file, not the directory: crosscheck.cjs in the same folder is a helper that reads stdin.
-    run = subprocess.run([NODE, "--test", str(ROOT / "tests" / "js" / "render.test.cjs")], capture_output=True,
-                         text=True, timeout=120, cwd=ROOT)
+    tests = [str(ROOT / "tests" / "js" / name) for name in ("render.test.cjs", "files.test.cjs")]
+    run = subprocess.run([NODE, "--test", *tests], capture_output=True, text=True, timeout=120, cwd=ROOT)
     assert run.returncode == 0, run.stdout + run.stderr
     assert "# fail 0" in run.stdout and "# pass" in run.stdout
 

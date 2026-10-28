@@ -41,7 +41,7 @@ running service: Docker, Kubernetes, CI/CD, monitoring and security.
 |---|---|---|
 | Model | A linear-chain CRF (python-crfsuite) tagging tokens with BIO labels. Features describe each token's surface form and its neighbours, plus a district-name memory and known-name lists (districts, divisions, upazilas) | [`docs/results.md`](docs/results.md), [`docs/label-schema.md`](docs/label-schema.md) |
 | API | FastAPI: `POST /api/v1/parse`, batch, model info, `/healthz`, `/readyz`, Prometheus `/metrics` | [`docs/api.md`](docs/api.md) |
-| Web page | Four static files served by the same process: no framework, no CDN, no cookies | [`thikana/web/`](thikana/web) |
+| Web page | Four static files served by the same process: no framework, no CDN, no cookies. Parses one address, or CSV / TSV / TXT files (up to 5 at once, 500 rows each) and gives back a CSV | [`thikana/web/`](thikana/web), [`docs/api.md`](docs/api.md) |
 | Container | Multi-stage Docker image, non-root, digest-pinned base, runs read-only with all capabilities dropped | [`docs/docker.md`](docs/docker.md) |
 | CI/CD | GitHub Actions: tests, train, quality gate, build, smoke test, vulnerability scan, publish to GHCR | [`docs/ci.md`](docs/ci.md) |
 | Kubernetes | Three replicas on Docker Desktop's built-in cluster, behind a LoadBalancer | [`docs/kubernetes.md`](docs/kubernetes.md) |

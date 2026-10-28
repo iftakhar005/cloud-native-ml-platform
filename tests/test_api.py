@@ -127,6 +127,12 @@ def test_model_endpoint_reports_a_verifiable_identity_and_honest_limits(client, 
     assert "synthetic" in limits and "never on real" in limits
 
 
+def test_model_endpoint_states_what_the_server_accepts_so_a_file_can_be_split_to_fit(client):
+    # The page reads these to cut an uploaded file into requests the server will take.
+    assert client.get("/api/v1/model").json()["limits"] == {          # the fixture's settings: batch 3, 200 chars
+        "max_batch": 3, "max_text_chars": 200, "max_body_bytes": Settings().max_body_bytes}
+
+
 def test_parse_is_503_with_the_error_envelope_when_no_model_is_loaded(no_model_client):
     response = no_model_client.post("/api/v1/parse", json={"text": ADDRESS})
     assert response.status_code == 503

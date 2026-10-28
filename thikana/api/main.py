@@ -226,7 +226,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/api/v1/model", tags=["model"], response_model=ModelInfo, responses=ERRORS,
              summary="Which model is serving, and what it cannot do")
     def model_info(request: Request):
-        return service_of(request).info
+        limits = {"max_batch": settings.max_batch, "max_text_chars": settings.max_text_chars,
+                  "max_body_bytes": settings.max_body_bytes}
+        return service_of(request).info.model_copy(update={"limits": limits})
 
     @app.post("/api/v1/parse", tags=["parse"], response_model=ParseResponse, responses=ERRORS,
               summary="Split one address into labelled parts")
