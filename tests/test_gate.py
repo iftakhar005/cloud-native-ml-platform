@@ -33,3 +33,15 @@ def test_one_regressed_set_is_reported_by_name():
 def test_the_production_model_on_disk_passes_the_gate():
     lines, failures = check(AddressParser.load(MODEL).predict)
     assert failures == [], "\n".join(lines)
+
+
+def test_the_model_the_gate_checks_is_the_model_the_service_loads_and_the_image_ships():
+    from pathlib import Path
+
+    from thikana.api.settings import DEFAULT_MODEL
+    from thikana.training.train_all import PRODUCTION_MODEL
+
+    root = Path(__file__).resolve().parents[1]
+    assert DEFAULT_MODEL == PRODUCTION_MODEL
+    for name in ("Dockerfile", ".dockerignore", ".env.example", ".github/workflows/ci.yml"):
+        assert f"{PRODUCTION_MODEL}." in (root / name).read_text(encoding="utf-8"), name

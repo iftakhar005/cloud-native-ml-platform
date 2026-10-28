@@ -1,0 +1,63 @@
+# HAND-WRITTEN evaluation set v5. NOT REAL ADDRESSES. Written by an AI assistant BEFORE the
+# village / union fix, to MEASURE a weakness a person found by typing "বুধড়া, গুনবতী" (two bare
+# Bangla names) into the live page: the model labelled both UPAZILA, the schema says AREA.
+# Labels follow docs/label-schema.md (D1-D11): villages, unions and post offices are AREA.
+#
+# THIS SET IS A DIAGNOSTIC, NOT AN UNBIASED TEST. The failure was known when it was written, and
+# its errors drive the generator change, so by the rules in README.md here it is SPENT as soon as
+# it has been scored. The fresh set that follows the fix is addresses_v6.txt.
+#
+# Style tags:  T-*  TARGETED   bare village / union names, no cue word, Bangla and mixed script
+#              R-*  REGRESSION GUARD  things that must keep working, so the fix cannot
+#                   buy village names by breaking upazilas
+#              F-*  FRESH      not trained for
+#
+# Format:  style ::: annotated address      annotation = {LABEL|surface text}
+# A literal \n is a line break. Text outside braces is O.
+
+# ---- T-bnvillage: a bare Bangla village / union name, alone or beside a district
+T-bnvillage ::: {AREA|বুধড়া}, {AREA|গুনবতী}
+T-bnvillage ::: {AREA|বুধড়া}, {AREA|গুনবতী}, {DISTRICT|বগুড়া}
+T-bnvillage ::: {AREA|কাজীপাড়া}, {DISTRICT|বগুড়া}
+T-bnvillage ::: {AREA|আমবাড়িয়া}, {DISTRICT|খুলনা}
+T-bnvillage ::: {AREA|শালবন}, {DISTRICT|রংপুর}
+T-bnvillage ::: {AREA|তালতলা}, {DISTRICT|ঢাকা}
+T-bnvillage ::: {AREA|বেলতলী}, {DISTRICT|বগুড়া}-{POSTCODE|৫৮০০}
+T-bnvillage ::: {AREA|কলাতলী}, {DISTRICT|ঢাকা}, {DIVISION|ঢাকা}
+
+# ---- T-bnpair: village + union (+ upazila) + district, no cue words
+T-bnpair ::: {AREA|বাঁশবাড়ী}, {UPAZILA|কাহালু}, {DISTRICT|বগুড়া}
+T-bnpair ::: {AREA|নিশ্চিন্তপুর}, {AREA|কলাতলী}, {UPAZILA|সাভার}, {DISTRICT|ঢাকা}
+T-bnpair ::: {AREA|কুশাহাটা}, {AREA|ঘোড়ামারা}, {UPAZILA|শিবগঞ্জ}, {DISTRICT|বগুড়া}
+T-bnpair ::: {AREA|নন্দীপাড়া}, {UPAZILA|ধামরাই}, {DISTRICT|ঢাকা}-{POSTCODE|১৩৫০}
+T-bnpair ::: {AREA|মহিষাখোলা}, {AREA|হাসাডাঙ্গা}, {UPAZILA|কাউনিয়া}, {DISTRICT|রংপুর}
+T-bnpair ::: {AREA|চাঁদপাড়া}, {UPAZILA|সারিয়াকান্দি}, {DISTRICT|বগুড়া}, {DIVISION|রাজশাহী}
+T-bnpair ::: {AREA|দেউলবাড়ি}, {UPAZILA|সাভার}, {DISTRICT|ঢাকা}
+T-bnpair ::: {AREA|রামচন্দ্রপুর}, {AREA|ছাতিয়ানতলা}, {UPAZILA|গাবতলি}, {DISTRICT|বগুড়া}
+
+# ---- T-bnmixed: a Bangla village name with English elsewhere, and a house or road first
+T-bnmixed ::: {HOUSE|House 4}, {AREA|বাঁশবাড়ী}, {DISTRICT|Bogura}
+T-bnmixed ::: {AREA|কুশাহাটা}, {UPAZILA|Savar}, {DISTRICT|Dhaka}
+T-bnmixed ::: {HOUSE|বাসা ৭}, {AREA|শালবন}, {DISTRICT|রংপুর}
+T-bnmixed ::: {ROAD|রোড ৩}, {AREA|কাজীপাড়া}, {DISTRICT|বগুড়া}
+
+# ---- R-: must keep working
+R-upazilafirst ::: {UPAZILA|কাহালু}, {DISTRICT|বগুড়া}
+R-upazilafirst ::: {UPAZILA|সাভার}, {DISTRICT|ঢাকা}-{POSTCODE|১৩৪০}
+R-upazilafirst ::: {HOUSE|বাসা ১২}, {UPAZILA|ধামরাই}, {DISTRICT|ঢাকা}
+R-upazilafirst ::: {UPAZILA|সারিয়াকান্দি}, {DISTRICT|বগুড়া}, {DIVISION|রাজশাহী}
+R-upazilafirst ::: {UPAZILA|শিবগঞ্জ}, {DISTRICT|বগুড়া}
+R-upazilafirst ::: {UPAZILA|কাউনিয়া}, {DISTRICT|রংপুর}
+R-urban ::: {AREA|মিরপুর}, {DISTRICT|ঢাকা}
+R-urban ::: {ROAD|রোড ৫}, {AREA|ধানমন্ডি}, {DISTRICT|ঢাকা}
+R-english ::: {AREA|Budhra}, {AREA|Kajipara}, {DISTRICT|Bogura}
+R-english ::: {AREA|Hasadanga}, {UPAZILA|Savar}, {DISTRICT|Dhaka}
+R-english ::: {UPAZILA|Kahaloo}, {DISTRICT|Bogura}
+R-english ::: {HOUSE|House 12}, {ROAD|Road 5}, {AREA|Mirpur-10}, {DISTRICT|Dhaka}-{POSTCODE|1216}
+R-cueword ::: গ্রাম: {AREA|বুধড়া}, ইউনিয়ন: {AREA|গুনবতী}, থানা: {UPAZILA|কাহালু}, জেলা: {DISTRICT|বগুড়া}
+R-cueword ::: Vill: {AREA|Budhra}, Union: {AREA|Kushahata}, Thana: {UPAZILA|Kahaloo}, Dist: {DISTRICT|Bogura}
+
+# ---- F-: not trained for
+F-reversed ::: {DISTRICT|বগুড়া}, {UPAZILA|কাহালু}, {AREA|বাঁশবাড়ী}
+F-landmark ::: {AREA|কাজীপাড়া}, {LANDMARK|কাজীপাড়া বাজারের পাশে}, {DISTRICT|বগুড়া}
+F-postcodefirst ::: {POSTCODE|৫৮০০}, {DISTRICT|বগুড়া}, {AREA|নিশ্চিন্তপুর}

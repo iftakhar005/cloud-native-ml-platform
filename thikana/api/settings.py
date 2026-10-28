@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 # Deliberately NOT imported from thikana.training.train_all: serving must not
 # import the training code (and with it pandas). A test checks the two agree.
-DEFAULT_MODEL = "crf_all_district_memory"
+DEFAULT_MODEL = "crf_all_district_memory_vocab"
 
 # The instance name is sent back in a response header, so it must not be able to carry
 # a newline or any other header-breaking character.

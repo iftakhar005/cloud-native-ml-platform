@@ -187,3 +187,30 @@ were annotated with the same lone-name convention.
 (NFC); about a quarter of the gazetteer's Bangla names are affected (15/64
 districts, 123/494 upazilas). Names are now compared in NFC PER TOKEN, after
 tokenising, so character offsets into the user's original text never move.
+
+## Decision added after the live page found a gap (D12, 2026-10-28)
+
+**D12 - A bare village or union name is AREA, in any script (ACCEPTED, implemented in the
+generator).** Someone typed `বুধড়া, গুনবতী` (a village and a union, no cue words) into the
+live page and both came back UPAZILA. The schema always said villages and unions are AREA
+(see the label table), so this was a model gap, not a schema change. The cause, measured:
+the gazetteer has Bangla names for upazilas, districts and divisions but not for post
+offices, so the generator wrote every rural area in Latin script. In 4,000 training
+examples the Bangla place names that were not city neighbourhoods were 273 UPAZILA and 33
+AREA, so the model learned "an unfamiliar Bangla name is an upazila".
+
+What the generator now does (all of it an AUGMENTATION, not observed data):
+- a rural area written in Bangla script is, 80% of the time, a made-up village name
+  (invented stem + suffix, optionally a prefix such as `উত্তর` or `ছোট`), checked at
+  generation time against every upazila, district and division name so it never equals one;
+- 15% of rural addresses carry TWO bare AREA names in a row (village and union or post
+  office), comma-joined, because "Kuhn Ghoramara" has no boundary a person could label;
+  not when the post office is named like its upazila, where D11 decides;
+- `Union` / `Union Parishad` / `UP` / `ইউনিয়ন` / `ইউনিয়ন পরিষদ` are introducers (labelled
+  O, per D7), used in the paper-form style;
+- a Latin village name is never one that is also an upazila, district or division name.
+
+Known limit, measured (docs/results.md): with data alone the model could not tell an unseen
+real upazila from an unknown village, because both are unfamiliar Bangla words in the same
+position. That was fixed by adding a name list as a feature (a token is a known district,
+division or upazila name), not by more data; see "Making it better" in `docs/results.md`.

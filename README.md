@@ -30,15 +30,16 @@ running service: Docker, Kubernetes, CI/CD, monitoring and security.
   knowledge of Bangladeshi addresses, and the same author wrote the generator, so the real
   error rate is probably worse than the numbers below.
 - **It labels any text.** It has no way to say "this is not an address".
-- **Known weakness:** bare village and union names with no cue word (`বুধড়া, গুনবতী`) are
-  often labelled as upazilas. With a cue word (`গ্রাম:`, `Vill:`, `Union:`) they come out as
-  areas, which is correct under the project's labelling rules.
+- **Known weaknesses.** Bare village and union names with no cue word (`বুধড়া, গুনবতী`) used
+  to be labelled as upazilas; a generator fix plus known-name features cut that (see Model
+  results), but it is only measured on made-up villages. Typos inside keywords and names
+  (`Hosue 9`) and the occasional real upazila labelled as an area remain.
 
 ## What is in it
 
 | Part | What it is | Details |
 |---|---|---|
-| Model | A linear-chain CRF (python-crfsuite) tagging tokens with BIO labels. Features describe each token's surface form and its neighbours, plus a district-name memory | [`docs/results.md`](docs/results.md), [`docs/label-schema.md`](docs/label-schema.md) |
+| Model | A linear-chain CRF (python-crfsuite) tagging tokens with BIO labels. Features describe each token's surface form and its neighbours, plus a district-name memory and known-name lists (districts, divisions, upazilas) | [`docs/results.md`](docs/results.md), [`docs/label-schema.md`](docs/label-schema.md) |
 | API | FastAPI: `POST /api/v1/parse`, batch, model info, `/healthz`, `/readyz`, Prometheus `/metrics` | [`docs/api.md`](docs/api.md) |
 | Web page | Four static files served by the same process: no framework, no CDN, no cookies | [`thikana/web/`](thikana/web) |
 | Container | Multi-stage Docker image, non-root, digest-pinned base, runs read-only with all capabilities dropped | [`docs/docker.md`](docs/docker.md) |
@@ -164,12 +165,14 @@ number does and does not mean, is in [`docs/results.md`](docs/results.md).
 
 | Evaluation | Rule baseline | Production CRF |
 |---|---|---|
-| Synthetic dev set (600), made by the same generator as the training data | 0.872 | 0.963 |
-| Hand-written v4 (65 addresses), in the deployment setting | 0.918 | 0.897 |
+| Hand-written v4 (65 addresses) | 0.918 | 0.952 (0.897 before the village work) |
+| Hand-written v7 (51 addresses), sealed and scored once | 0.981 | 0.981 (0.818 before the village work) |
 
-The hand-written set is small and not real data. On it the CRF did **not** beat the rule
-baseline, and the difference is inside the noise (paired bootstrap interval includes 0).
-Synthetic scores measure how well the model learned the generator, not real addresses.
+On v4 the difference to the baseline is inside the noise (paired bootstrap interval includes
+0), and on v7 the two are tied: these sets turn on whether a name is in the gazetteer, which a
+dictionary answers exactly. Both sets are small, hand-written by the same author as the
+generator, and not real data, so they say nothing about real addresses. The village work and
+the decision to add known-name features are in [`docs/results.md`](docs/results.md).
 
 ## Run it yourself
 

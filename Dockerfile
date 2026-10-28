@@ -40,7 +40,7 @@ ARG GIT_SHA=unknown
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH=/opt/venv/bin:$PATH \
-    THIKANA_MODEL_PATH=/app/models/crf_all_district_memory.crfsuite \
+    THIKANA_MODEL_PATH=/app/models/crf_all_district_memory_vocab.crfsuite \
     THIKANA_GIT_SHA=${GIT_SHA}
 
 # A fixed, unprivileged identity with no home directory and no login shell.
@@ -65,7 +65,7 @@ WORKDIR /app
 # ORDER = least to most frequently changing. Docker rebuilds a layer whenever anything
 # BEFORE it changed, so the model (retrained rarely) comes first, the core modules next,
 # and the API code (edited constantly) last: a code edit then rebuilds one small layer.
-COPY --chmod=a=rX models/crf_all_district_memory.crfsuite models/crf_all_district_memory.json models/
+COPY --chmod=a=rX models/crf_all_district_memory_vocab.crfsuite models/crf_all_district_memory_vocab.json models/
 COPY --chmod=a=rX thikana/__init__.py thikana/schema.py thikana/text.py thikana/features.py thikana/model.py thikana/
 COPY --chmod=a=rX thikana/api/ thikana/api/
 # The web page (four static files). Served by the API process itself, so there is no second

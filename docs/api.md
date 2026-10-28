@@ -18,7 +18,7 @@ python -m uvicorn thikana.api.main:app --port 8000
 
 Then open <http://localhost:8000/docs> for interactive documentation.
 
-The model is loaded at startup from `models/crf_all_district_memory.crfsuite`. If
+The model is loaded at startup from `models/crf_all_district_memory_vocab.crfsuite`. If
 you have not trained it yet: `python -m thikana.training.train_all`.
 
 ## Endpoints
@@ -134,7 +134,7 @@ flags, in Kubernetes a ConfigMap.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `THIKANA_MODEL_PATH` | `models/crf_all_district_memory.crfsuite` | the model to serve |
+| `THIKANA_MODEL_PATH` | `models/crf_all_district_memory_vocab.crfsuite` | the model to serve |
 | `THIKANA_MAX_TEXT_CHARS` | `500` | longest accepted address |
 | `THIKANA_MAX_BATCH` | `100` | most addresses per batch request |
 | `THIKANA_MAX_BODY_BYTES` | `65536` | largest request body (by `Content-Length`) |

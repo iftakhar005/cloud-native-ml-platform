@@ -160,7 +160,12 @@ def test_every_keyword_family_is_generated(big):
             assert any(re.match(pattern, s, re.I) for s in found), (label, pattern)
 
 
-def test_decision_d7_introducers_appear_but_are_never_part_of_a_span(big):
+def test_decision_d7_introducers_appear_but_are_never_part_of_a_span(big, places):
+    # A real name can start with an introducer word ("Thanar Hat"), and a typo can move its space
+    # ("Thana rHat"); that is a name, not an introducer, so it is allowed.
+    spaceless = lambda text: text.lower().replace(" ", "")
+    legitimate = {spaceless(n)[:6] for p in places for n in (p.area, p.upazila)
+                  if spaceless(n).startswith(("thana", "vill", "gram", "post", "zila", "dist", "upazila"))}
     anywhere = re.compile(r"(?:^|[ ,;\-])(?:vill|gram|p\.o|dist|zila|thana|p\.s)[:\-. ]", re.I)
     starts = re.compile(r"^(?:vill|village|gram|p\.o|po|post|thana|p\.s|ps|upazila|upazilla|"
                         r"dist|district|zila|গ্রাম|ডাকঘর|পোস্ট|থানা|উপজেলা|জেলা)[:\-. ]", re.I)
@@ -168,7 +173,8 @@ def test_decision_d7_introducers_appear_but_are_never_part_of_a_span(big):
     for e in big:
         for s in e.spans:
             if s.label in ("AREA", "UPAZILA", "DISTRICT"):
-                assert not starts.match(e.text[s.start:s.end]), e.text
+                surface = e.text[s.start:s.end]
+                assert not starts.match(surface) or spaceless(surface)[:6] in legitimate, e.text
 
 
 def test_landmarks_are_diverse_and_their_boundaries_are_punctuated(big):
@@ -268,6 +274,11 @@ def test_decision_d11_a_name_shared_by_post_office_and_upazila(places):
             reversed_order = any(s.label in ("DISTRICT", "POSTCODE") and s.start < named[0].start
                                  for s in e.spans)
             expected = ["UPAZILA", "AREA"] if reversed_order else ["AREA", "UPAZILA"]
+            if not any(s.label in ("DISTRICT", "POSTCODE") for s in e.spans):
+                # nothing in the text says which way the address runs (a reversed one with no
+                # district or postcode looks like a forward one), so either order is right
+                assert sorted(s.label for s in named) == ["AREA", "UPAZILA"], e.text
+                continue
             assert [s.label for s in named] == expected, e.text  # hierarchy decides in reversed order
     assert single > 20 and both > 5
     assert lone >= 1  # regression: the "never an empty address" fallback skipped D11
@@ -322,3 +333,78 @@ def test_most_table_upazilas_appear_in_a_large_sample():
     names = {normalize_token(s).lower()
              for e in generate(build_all_places(), 8000, seed=5) for s in e.surface("UPAZILA")}
     assert len(names) > 330  # most of the 492 appear (and several are Bangla forms)
+
+
+# ---- decision D12: bare village / union names ---------------------------------
+
+BANGLA = re.compile("[\u0980-\u09ff]")
+
+
+def _gazetteer_names():
+    f = load_all()
+    return {normalize_token(n.strip()).lower() for frame, columns in (
+        (f["districts"], ("name", "bn_name")), (f["divisions"], ("name", "bn_name")),
+        (f["upazilas"], ("name", "bn_name")), (f["postcodes"], ("upazila", "postOffice")))
+        for column in columns for n in frame[column]}
+
+
+def test_d12_every_name_the_generator_can_compose_is_unknown_to_the_gazetteer():
+    from thikana.training.synth import BN_VILLAGE_PREFIXES, BN_VILLAGE_STEMS, BN_VILLAGE_SUFFIXES
+
+    known = _gazetteer_names()
+    composed = {normalize_token(stem + suffix).lower() for stem in BN_VILLAGE_STEMS
+                for suffix in BN_VILLAGE_SUFFIXES}
+    assert len(composed) > 500
+    clash = composed & known
+    # a handful may coincide with a real name; the generator drops those at run time (next test)
+    assert len(clash) < 10, sorted(clash)
+    assert all(p.strip() for p in BN_VILLAGE_PREFIXES)
+
+
+def test_d12_bangla_places_are_no_longer_always_upazilas(big):
+    # before: 33 Bangla AREA spans that were not a city neighbourhood or a ward, against 273 UPAZILA
+    urban_bn = {a[1] for a in URBAN_AREAS}
+    bangla_areas = [e.text[s.start:s.end] for e in big for s in e.spans if s.label == "AREA"
+                    and BANGLA.search(e.text[s.start:s.end])
+                    and not any(u in e.text[s.start:s.end] for u in urban_bn)
+                    and "ওয়ার্ড" not in e.text[s.start:s.end]]
+    bangla_upazilas = [e.text[s.start:s.end] for e in big for s in e.spans if s.label == "UPAZILA"
+                       and BANGLA.search(e.text[s.start:s.end])]
+    assert len(bangla_areas) > 150
+    assert len(bangla_areas) > len(bangla_upazilas) / 3     # a real share, not a token gesture
+
+
+def test_d12_a_made_up_village_is_never_a_real_upazila_district_or_division_name(big):
+    f = load_all()
+    reserved = {normalize_token(n.strip()).lower() for frame in (f["districts"], f["divisions"], f["upazilas"])
+                for n in frame["bn_name"]}
+    for e in big:
+        for s in e.spans:
+            if s.label == "AREA" and BANGLA.search(e.text[s.start:s.end]):
+                surface = normalize_token(e.text[s.start:s.end]).lower()
+                if "ওয়ার্ড" in surface or any(u[1] in surface for u in URBAN_AREAS):
+                    continue
+                assert surface not in reserved, e.text
+
+
+def test_d12_two_bare_areas_in_a_row_are_always_comma_joined(big):
+    pairs = 0
+    for e in big:
+        spans = e.spans
+        for a, b in zip(spans, spans[1:]):
+            if a.label == b.label == "AREA" and not e.text[a.start:a.end].lower().startswith("ward"):
+                glue = e.text[a.end:b.start]
+                if "," in glue and glue.strip() == ",":
+                    pairs += 1
+    assert pairs > 100        # village + union, the pattern the live page was getting wrong
+
+
+def test_d12_a_union_introducer_is_never_part_of_a_span(big):
+    union = re.compile(r"^(?:union parishad|union|up|ইউনিয়ন পরিষদ|ইউনিয়ন)[:\-. ]", re.I)
+    seen = 0
+    for e in big:
+        seen += bool(re.search(r"(?:union|ইউনিয়ন)[:\-. ]", e.text, re.I))
+        for s in e.spans:
+            if s.label in ("AREA", "UPAZILA", "DISTRICT"):
+                assert not union.match(e.text[s.start:s.end]), e.text
+    assert seen > 20

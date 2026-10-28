@@ -20,8 +20,8 @@
 
 # the production model and its sidecar (vocabulary + feature flags). The models/
 # folder is gitignored, so it must be built first: python -m thikana.training.train_all
-!models/crf_all_district_memory.crfsuite
-!models/crf_all_district_memory.json
+!models/crf_all_district_memory_vocab.crfsuite
+!models/crf_all_district_memory_vocab.json
 
 # bytecode never ships, even from inside an allowed folder
 **/__pycache__

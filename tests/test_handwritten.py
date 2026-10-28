@@ -198,3 +198,72 @@ def test_every_v4_gold_span_lands_on_token_boundaries():
         tokens = tokenize(normalize_digits(item.example.text))
         tags = to_bio(tokens, item.example.spans)
         assert bio_to_spans(tokens, tags) == list(item.example.spans), item.example.text
+
+
+# ---- v5 (diagnostic) and v6 (fresh), for decision D12 ------------------------
+
+def _known_names():
+    f = load_all()
+    nfc = lambda s: unicodedata.normalize("NFC", s.strip()).lower()
+    known = set()
+    for frame, columns in ((f["districts"], ("name", "bn_name")), (f["divisions"], ("name", "bn_name")),
+                           (f["upazilas"], ("name", "bn_name")), (f["postcodes"], ("upazila", "postOffice"))):
+        for column in columns:
+            known |= {nfc(x) for x in frame[column]}
+    return nfc, known
+
+
+@pytest.mark.parametrize("version", ["v5", "v6", "v7"])
+def test_village_sets_load_audit_clean_and_cover_targets_and_guards(version):
+    items, variants = load(path_for(version))
+    assert len(items) >= 35
+    assert audit(items, variants) == []
+    assert {i.style[:2] for i in items} == {"T-", "R-", "F-"}
+    upazilas = [s for i in items if i.style.startswith("R-upazila") for s in i.example.spans
+                if s.label == "UPAZILA"]
+    assert len(upazilas) >= 6 or version == "v5"          # v6 guards real upazilas from being swallowed
+
+
+def test_v6_and_v7_share_no_address_with_any_earlier_set_and_v5_only_repeats_its_regression_guards():
+    earlier = {i.example.text for v in ("v1", "v2", "v3", "v4") for i in load(path_for(v))[0]}
+    v5_items = load(path_for("v5"))[0]
+    v5 = {i.example.text for i in v5_items}
+    v6 = {i.example.text for i in load(path_for("v6"))[0]}
+    v7 = {i.example.text for i in load(path_for("v7"))[0]}
+    assert v6.isdisjoint(earlier | v5)                      # the fresh sets are fully fresh
+    assert v7.isdisjoint(earlier | v5 | v6)
+    # v5 was a diagnostic; a regression guard ("R-") may reuse a string that already existed
+    assert all(i.style.startswith("R-") for i in v5_items if i.example.text in earlier)
+
+
+@pytest.mark.parametrize("version", ["v5", "v6", "v7"])
+def test_the_invented_village_names_are_in_no_gazetteer_file(version):
+    nfc, known = _known_names()
+    items, _ = load(path_for(version))
+    novel = [nfc(i.example.text[s.start:s.end]) for i in items if i.style.startswith("T-")
+             for s in i.example.spans if s.label == "AREA"]
+    assert len(novel) >= 20
+    assert not [n for n in novel if n in known]
+
+
+@pytest.mark.parametrize("version", ["v6", "v7"])
+def test_fresh_village_names_are_ones_the_generator_can_never_write(version):
+    # v6 and v7 only measure generalisation if their names were not in the training data
+    from thikana.training import synth
+
+    nfc = lambda s: unicodedata.normalize("NFC", s.strip()).lower()
+    composed = {nfc(stem + suffix) for stem in synth.BN_VILLAGE_STEMS for suffix in synth.BN_VILLAGE_SUFFIXES}
+    composed |= {nfc(prefix + " " + name) for prefix in synth.BN_VILLAGE_PREFIXES for name in composed}
+    items, _ = load(path_for(version))
+    names = [nfc(i.example.text[s.start:s.end]) for i in items for s in i.example.spans if s.label == "AREA"]
+    assert len(names) >= 30
+    assert not [n for n in names if n in composed]
+
+
+@pytest.mark.parametrize("version", ["v5", "v6", "v7"])
+def test_every_village_set_gold_span_lands_on_token_boundaries(version):
+    items, _ = load(path_for(version))
+    for item in items:
+        tokens = tokenize(normalize_digits(item.example.text))
+        tags = to_bio(tokens, item.example.spans)
+        assert bio_to_spans(tokens, tags) == list(item.example.spans), item.example.text

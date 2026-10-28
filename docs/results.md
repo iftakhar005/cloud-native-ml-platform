@@ -125,6 +125,9 @@ dictionary cannot do: typos, number formats, abbreviations, odd order.
    confirms nor contradicts it (+0.013, not significant). It REMAINS the
    production model until the owner changes it; the evidence now points to a
    better candidate (below), which needs a fresh v5.
+   **Changed 2026-10-28**, on the owner's request to improve the village result: production is now
+   district memory plus the full-table vocabulary features (`crf_all_district_memory_vocab`); the
+   evidence is in "Making it better" above.
 3. **Train on every gazetteer record, vocabulary from the full tables.** Done,
    with two augmentations disclosed: 230 synthetic "upazila-only" places for the
    upazilas the postcode file lacks (post office named like the upazila, postcode
@@ -153,8 +156,172 @@ dictionary cannot do: typos, number formats, abbreviations, odd order.
 - Still undecided, so absent from the generator and every set: `Union Parishad
   Office` and other building / office names, and `Floor`.
 
+## The village / union fix (decision D12, 2026-10-28)
+
+**Trigger.** A person typed `বুধড়া, গুনবতী` (a village and a union, no cue words) into the live
+page; both came back UPAZILA. Decision D12 in `docs/label-schema.md` has the cause (the
+generator wrote every rural area in Latin script, so the model only ever saw Bangla
+upazilas) and exactly what the generator now does.
+
+**What was measured, in order.** v5 (a diagnostic, written first, 37 addresses) put the
+size of the gap at 0.775 micro F1 for the production model. The generator was changed, the
+production model retrained, then a fresh v6 (47 addresses, names the generator provably
+cannot write) was scored. Micro F1, production model `crf_all_district_memory`:
+
+| Set | Before the fix | After (shipped) | After, with upazila-vocabulary features (adopted next, with district memory: see below) |
+|---|---|---|---|
+| v1 (70) | 0.983 | 0.990 | 0.983 |
+| v2 (74) | 0.928 | 0.952 | 0.942 |
+| v3 (69) | 0.919 | 0.910 | 0.933 |
+| v4 (65) | 0.897 | 0.915 | 0.942 |
+| v5 (37), diagnostic | 0.775 | 0.874 | 0.955 |
+| **v6 (47), fresh** | **0.758** | **0.871** | 0.992 |
+
+v6 paired bootstrap, 95% interval: after minus before **+0.114 [+0.051, +0.175]** (excludes
+zero); vocabulary-feature model minus the shipped one **+0.121 [+0.067, +0.177]**.
+
+By group on v6 (before, shipped, vocabulary-feature model):
+
+| Group | n | Before | Shipped | Vocabulary features |
+|---|---|---|---|---|
+| T-bnvillage (bare Bangla village or union, with a district) | 10 | 0.591 | 0.773 | 0.955 |
+| T-bnpair (village and union, then upazila and district) | 10 | 0.639 | 0.861 | 1.000 |
+| T-bnmixed (Bangla village among English) | 5 | 0.667 | 0.867 | 1.000 |
+| R-upazila-bn (real Bangla upazilas, must stay UPAZILA) | 8 | 1.000 | 0.947 | 1.000 |
+| R-upazila-en (real English upazilas, must stay UPAZILA) | 7 | 0.941 | 0.882 | 1.000 |
+
+**What this says.**
+1. The fix helped, and the interval excludes zero on the fresh set. It did not finish the job:
+   `বুধড়া, গুনবতী` now comes out `[AREA] [UPAZILA]` (one of two right), and
+   `রামপুর, কাজীপাড়া, বগুড়া` still comes out UPAZILA, UPAZILA, DISTRICT.
+2. **It cost something.** A few real upazilas (Kaharole, Dohar, Raninagar, Hatibandha) are now
+   sometimes called AREA. Data alone cannot separate "an unseen real upazila" from "an
+   unknown village": both are unfamiliar words in the same place. Giving the model more
+   examples moves the balance between the two errors; it does not remove the trade-off.
+3. **A name list does remove it.** `crf_all_gazetteer` (a "this token is a known upazila name"
+   feature) gets both of the user's examples right and scores 0.955 / 0.992 on v5 / v6 with
+   no loss on v1-v4. This is the same candidate v4 pointed to (+0.051 there). It was
+   adopted in the next step, in combination with district memory ("Making it better").
+4. **Read the baseline column with care.** The rule baseline scores 0.973 on v5 and 0.992 on
+   v6, because these sets turn on "is this name in the gazetteer?", which a dictionary
+   answers exactly. Real villages that share a name with an upazila elsewhere would not be
+   so easy for it. Both sets were written by the same author as the generator.
+
+**Seed noise, measured, and what it changed.** Three training seeds, final generator,
+micro F1 (`train_all` uses seed 1):
+
+| Model and size | Seed | v1 | v2 | v3 | v4 | v5 | v6 |
+|---|---|---|---|---|---|---|---|
+| district memory, 4,000 | 1 | 0.983 | 0.945 | 0.891 | 0.879 | 0.883 | 0.879 |
+| district memory, 4,000 | 2 | 0.980 | 0.931 | 0.905 | 0.889 | 0.901 | 0.864 |
+| district memory, 4,000 | 3 | 0.990 | 0.945 | 0.921 | 0.894 | 0.901 | 0.864 |
+| district memory, 8,000 | 1 | 0.990 | 0.952 | 0.910 | 0.915 | 0.874 | 0.871 |
+| district memory, 8,000 | 2 | 0.983 | 0.949 | 0.901 | 0.915 | 0.910 | 0.848 |
+| district memory, 8,000 | 3 | 0.987 | 0.949 | 0.926 | 0.905 | 0.892 | 0.864 |
+| vocabulary features, 4,000 | 1 | 0.980 | 0.942 | 0.928 | 0.937 | 0.937 | 0.977 |
+| vocabulary features, 4,000 | 2 | 0.970 | 0.916 | 0.917 | 0.920 | 0.946 | 0.970 |
+| vocabulary features, 4,000 | 3 | 0.980 | 0.933 | 0.917 | 0.907 | 0.928 | 0.970 |
+
+At 4,000 examples the same recipe scored between 0.891 and 0.921 on v3 depending only on
+the seed, so one unlucky run failed the quality gate (v3 0.891, v4 0.879) after a change
+that should not have mattered. Production therefore trains on 8,000 examples
+(`PRODUCTION_EXAMPLES`): all three seeds clear every floor, and v4 rises from 0.88-0.89 to
+0.91. The split-trained models keep 4,000 so earlier experiments stay comparable. A trade
+named plainly: this changes the production recipe, and a different size or seed would land
+on slightly different numbers than the ones in the table above.
+
+**Process disclosures.**
+- v5 was scored before the generator was changed and its errors drove the change, so it
+  is spent and says nothing unbiased. v6 was written after the change and before any model
+  saw it.
+- v6 was scored by earlier versions of the generator while it was being built (0.886, then
+  0.879 for the data-only versions) and then once more after a final generator fix that came
+  from a unit-test failure, not from v6 errors (no village pair beside a post office named
+  like its upazila). The table shows the shipped model only; the move between versions was
+  inside the seed noise above.
+- A "before" score of 0.586 on v5 was wrong: the backed-up model had been copied without its
+  `.json` sidecar (the district vocabulary), so it was a different model. It was caught
+  because the same string gave two different answers. Back up a model with BOTH files.
+- Two tests that had passed only by luck of the random stream failed after the change and
+  were corrected (an area named "Thanar Hat" with a typo, and a reversed address with no
+  district). Neither was a model problem.
+- Round-robin sampling of places (the "guarantee exposure" next step above) was tried and
+  removed: it was no better than uniform draws across three seeds.
+
+**Not done at this point.** Switching production to the vocabulary features (done next, below);
+separate Village and Union labels; any evaluation on real addresses.
+
+## Making it better: district memory plus vocabulary features (2026-10-28)
+
+The "combined candidate" of next step 2 above: district memory AND the full-table token
+features ("this token is a known district / division / upazila name"), trained on every
+gazetteer record. The model file is `crf_all_district_memory_vocab`.
+
+**How it was chosen.** A fresh sealed set, v7 (51 addresses, 154 gold entities), was written
+first and not scored against until the choice was made. The choice used v1-v6 over three
+training seeds each, with a rule fixed beforehand: the highest mean over v1-v6, no set under
+its gate floor. Range over the three seeds, micro F1:
+
+| Recipe | v1 | v2 | v3 | v4 | v5 | v6 |
+|---|---|---|---|---|---|---|
+| district memory, 8,000 (the previous step) | .983-.990 | .949-.952 | .901-.926 | .905-.915 | .874-.910 | .848-.871 |
+| vocabulary only, 4,000 | .970-.980 | .916-.942 | .917-.928 | .907-.937 | .928-.946 | .970-.977 |
+| vocabulary only, 8,000 | .980-.987 | .942-.949 | .926-.933 | .935-.947 | .946-.955 | .977-.992 |
+| memory + vocabulary, 4,000 | .987-.997 | .940-.959 | .926-.935 | .947-.952 | .991 | .992-1.000 |
+| **memory + vocabulary, 8,000 (adopted)** | .990-.993 | .956-.963 | .933-.935 | .952-.960 | .982-1.000 | .992-1.000 |
+
+Mean over v1-v6 per seed: 0.971, 0.973 and 0.972 for the adopted recipe; 0.965-0.972 at 4,000;
+0.952-0.958 vocabulary only; 0.918-0.920 district memory alone. The combined recipes at 4,000
+and 8,000 examples are close; 8,000 was kept because production already trains on that and it
+had the tightest range on v2.
+
+**The sealed score.** v7, scored once for each system (micro F1):
+
+| System | v7 |
+|---|---|
+| model before any of this (district memory, 4,000, Latin-only villages) | 0.818 |
+| district memory, 8,000, village data only (previous step) | 0.929 |
+| vocabulary features only (`crf_all_gazetteer`) | 0.968 |
+| **memory + vocabulary (adopted)** | **0.981** |
+| rule baseline (full gazetteer lookup) | 0.981 |
+
+Paired bootstrap, 95% interval: adopted minus the model before **+0.163 [+0.104, +0.225]**;
+adopted minus the previous step **+0.053 [+0.019, +0.095]**; adopted minus vocabulary only
++0.013 [0.000, +0.032] (not distinguishable); adopted minus the rule baseline 0.000
+[-0.019, +0.019] (tied). On v4 the adopted model scores 0.952 against 0.897 before and
+against 0.918 for the baseline (+0.034 over the baseline, interval [-0.024, +0.082]: not
+established).
+
+The user's own examples now come out right: `বুধড়া, গুনবতী` is `[AREA] [AREA]`,
+`বুধড়া, গুনবতী, বগুড়া` adds a DISTRICT, and `রামপুর, কাজীপাড়া, বগুড়া` is AREA, AREA, DISTRICT,
+while `কাহালু, বগুড়া` stays UPAZILA, DISTRICT.
+
+**What is still wrong.** 3 of 51 on v7: a real English upazila (`Jhenaigati`) called AREA, and
+two typo cases (`Hosue 9` read as an AREA, and the misspelled upazila `Araihazaar`). Typos
+inside keywords and names were an open problem before and remain one. The earlier trade-off
+(real upazilas swallowed by villages) is mostly gone: the R-upazila groups on v7 are 1.000
+(Bangla) and 0.947 (English).
+
+**How to read it.** The rule baseline ties the CRF on v7 and is within 0.01 of it on v6,
+because these sets turn on "is this name in the gazetteer?", which a dictionary answers
+exactly. The CRF now matches it on that, and its other strengths (typos inside keywords,
+number formats, odd order) were shown in earlier rounds. Both sets were written by the same
+author as the generator and neither is real. The numbers say the village problem is fixed on
+made-up villages; they say nothing about real ones, which will share names with upazilas
+elsewhere in ways nobody here wrote down.
+
+**What changed in the repository.** `PRODUCTION_MODEL`, the default `THIKANA_MODEL_PATH`, the
+Dockerfile, `.dockerignore`, the CI artifact list and the docs now name
+`crf_all_district_memory_vocab`. The gate floors were RAISED (v2 0.920, v4 0.920, v6 0.950;
+v1 0.970 and v3 0.900 unchanged), each about 3 points under the lowest of the three seeds.
+`train_all` now trains four models (about 30 s each) so earlier comparisons stay
+reproducible. The model file is 509 KB. Not checked: that the Linux-trained model predicts
+like the Windows-trained one (it did for the previous model); the first CI run is that check.
+
+v7 is now SPENT as well.
+
 ## Rules for the next iteration
 
-v4 is SPENT. Change the generator or training, decide the primary comparison in
-advance, then write a fresh `addresses_v5.txt` before reporting a new number.
+v4, v5, v6 and v7 are SPENT. Change the generator or training, decide the primary comparison in
+advance, then write a fresh `addresses_v8.txt` before reporting a new number.
 Real addresses, once collected, supersede all of these.

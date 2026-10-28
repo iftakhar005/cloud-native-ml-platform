@@ -74,8 +74,8 @@ jobs:
         with:
           name: production-model
           path: |
-            models/crf_all_district_memory.crfsuite
-            models/crf_all_district_memory.json
+            models/crf_all_district_memory_vocab.crfsuite
+            models/crf_all_district_memory_vocab.json
           if-no-files-found: error
           retention-days: 7
 

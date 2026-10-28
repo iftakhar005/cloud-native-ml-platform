@@ -1,0 +1,74 @@
+# HAND-WRITTEN evaluation set v6. NOT REAL ADDRESSES. Written by an AI assistant AFTER the village /
+# union generator change (decision D12) and BEFORE any model saw it. It is the fresh check for that
+# change: v5 was a diagnostic whose errors drove the fix, so it cannot say whether the fix works.
+# Labels follow docs/label-schema.md (D1-D12): villages, unions and post offices are AREA.
+#
+# The invented village names here are disjoint from everything the generator can write (a test
+# checks it), and none appears in any gazetteer file (a test checks that too). Some use endings the
+# generator never produces (-খোলা, -মুড়ি, -ঝাড়, -পোতা, -গাছি, -ঝুলি, -দহ, -বিল, -কুঠি).
+#
+# Style tags:  T-*  TARGETED   bare village / union names, no cue word
+#              R-*  REGRESSION GUARD  real upazilas must still be UPAZILA, so the fix cannot
+#                   buy village names by breaking them (new upazilas, English and Bangla)
+#              F-*  FRESH      not trained for
+# Scored once; never used to tune. See README.md here.
+#
+# Format:  style ::: annotated address      annotation = {LABEL|surface text}
+# A literal \n is a line break. Text outside braces is O.
+
+# ---- T-bnvillage: a bare Bangla village / union name, alone or beside a district
+T-bnvillage ::: {AREA|সোনাই}, {AREA|পাঁচগাছি}
+T-bnvillage ::: {AREA|শিয়ালমুড়ি}, {DISTRICT|কুমিল্লা}
+T-bnvillage ::: {AREA|কলমাখোলা}, {DISTRICT|টাঙ্গাইল}
+T-bnvillage ::: {AREA|সুতিপোতা}, {DISTRICT|নওগাঁ}-{POSTCODE|৬৫০০}
+T-bnvillage ::: {AREA|মরিচ}, {DISTRICT|পিরোজপুর}
+T-bnvillage ::: {AREA|রতনদহ}, {DISTRICT|জয়পুরহাট}
+T-bnvillage ::: {AREA|কালিঝাড়}, {DISTRICT|রংপুর}
+T-bnvillage ::: {AREA|নয়ানবিল}, {DISTRICT|নেত্রকোণা}, {DIVISION|ময়মনসিংহ}
+T-bnvillage ::: {AREA|টেংরাখালী}, {DISTRICT|নোয়াখালী}
+T-bnvillage ::: {AREA|ভেলাগাছি}, {DISTRICT|পটুয়াখালী}
+
+# ---- T-bnpair: village + union (+ upazila) + district, no cue words
+T-bnpair ::: {AREA|ডাহুকি}, {UPAZILA|ধুনট}, {DISTRICT|বগুড়া}
+T-bnpair ::: {AREA|গোয়ালপাড়া}, {AREA|কাঁচিঝুলি}, {UPAZILA|কাহারোল}, {DISTRICT|দিনাজপুর}
+T-bnpair ::: {AREA|বেড়াডাঙ্গা}, {UPAZILA|চাটখিল}, {DISTRICT|নোয়াখালী}
+T-bnpair ::: {AREA|মাছিমপুর}, {AREA|সাতবাড়িয়া}, {UPAZILA|ঘাটাইল}, {DISTRICT|টাঙ্গাইল}
+T-bnpair ::: {AREA|চরমোহনপুর}, {UPAZILA|মোহনগঞ্জ}, {DISTRICT|নেত্রকোণা}-{POSTCODE|২৪৪০}
+T-bnpair ::: {AREA|রূপগাঁও}, {UPAZILA|বাউফল}, {DISTRICT|পটুয়াখালী}, {DIVISION|বরিশাল}
+T-bnpair ::: {AREA|ঝিনুকদিয়া}, {AREA|কাশবন}, {UPAZILA|দোহার}, {DISTRICT|ঢাকা}
+T-bnpair ::: {AREA|বাবুপাড়া}, {UPAZILA|হাতিবান্ধা}, {DISTRICT|লালমনিরহাট}
+T-bnpair ::: {AREA|দত্তপাড়া}, {UPAZILA|দেবীদ্বার}, {DISTRICT|কুমিল্লা}
+T-bnpair ::: {AREA|ঢালুয়া}, {AREA|লাঙ্গলবাঁধ}, {UPAZILA|তেঁতুলিয়া}, {DISTRICT|পঞ্চগড়}
+
+# ---- T-bnmixed: a Bangla village name with English elsewhere, and a house or road first
+T-bnmixed ::: {HOUSE|House 9}, {AREA|মনসাতলা}, {DISTRICT|Pirojpur}
+T-bnmixed ::: {AREA|কুঠিবাড়ি}, {UPAZILA|Ghatail}, {DISTRICT|Tangail}
+T-bnmixed ::: {HOUSE|বাসা ২}, {AREA|আড়ালিয়া}, {DISTRICT|নওগাঁ}
+T-bnmixed ::: {ROAD|রোড ৬}, {AREA|ধলাহাটা}, {DISTRICT|জয়পুরহাট}
+T-bnmixed ::: {AREA|তিলকপুর}, {UPAZILA|আক্কেলপুর}, {DISTRICT|Joypurhat}
+
+# ---- R-: real upazilas must stay UPAZILA
+R-upazila-bn ::: {UPAZILA|ধুনট}, {DISTRICT|বগুড়া}
+R-upazila-bn ::: {UPAZILA|চাটখিল}, {DISTRICT|নোয়াখালী}-{POSTCODE|৩৮৭০}
+R-upazila-bn ::: {HOUSE|বাসা ৮}, {UPAZILA|ঘাটাইল}, {DISTRICT|টাঙ্গাইল}
+R-upazila-bn ::: {UPAZILA|মাঠবাড়িয়া}, {DISTRICT|পিরোজপুর}, {DIVISION|বরিশাল}
+R-upazila-bn ::: {UPAZILA|রাণীনগর}, {DISTRICT|নওগাঁ}
+R-upazila-bn ::: {UPAZILA|সিরাজদিখান}, {DISTRICT|মুন্সিগঞ্জ}
+R-upazila-bn ::: {UPAZILA|কাপ্তাই}, {DISTRICT|রাঙ্গামাটি}
+R-upazila-bn ::: {UPAZILA|হাতিবান্ধা}, {DISTRICT|লালমনিরহাট}
+R-upazila-en ::: {UPAZILA|Dhunat}, {DISTRICT|Bogura}
+R-upazila-en ::: {UPAZILA|Kaharole}, {DISTRICT|Dinajpur}-{POSTCODE|5200}
+R-upazila-en ::: {HOUSE|House 3}, {UPAZILA|Chatkhil}, {DISTRICT|Noakhali}
+R-upazila-en ::: {UPAZILA|Bauphal}, {DISTRICT|Patuakhali}
+R-upazila-en ::: {UPAZILA|Dohar}, {DISTRICT|Dhaka}, {DIVISION|Dhaka}
+R-upazila-en ::: {UPAZILA|Kaptai}, {DISTRICT|Rangamati}
+R-upazila-en ::: {UPAZILA|Sirajdikhan}, {DISTRICT|Munshiganj}
+R-urban ::: {ROAD|রোড ২}, {AREA|গুলশান}, {DISTRICT|ঢাকা}
+R-english ::: {AREA|Hasadanga}, {AREA|Nandipara}, {DISTRICT|Bogura}
+R-cueword ::: গ্রাম: {AREA|সোনাই}, ইউনিয়ন: {AREA|পাঁচগাছি}, থানা: {UPAZILA|ধুনট}, জেলা: {DISTRICT|বগুড়া}
+R-cueword ::: Vill: {AREA|Kalimati}, Union: {AREA|Rupahati}, Thana: {UPAZILA|Ghatail}, Dist: {DISTRICT|Tangail}
+
+# ---- F-: not trained for
+F-reversed ::: {DISTRICT|নওগাঁ}, {UPAZILA|রাণীনগর}, {AREA|সুতিপোতা}
+F-landmark ::: {AREA|শিয়ালমুড়ি}, {LANDMARK|শিয়ালমুড়ি বাজারের পাশে}, {DISTRICT|কুমিল্লা}
+F-postcodefirst ::: {POSTCODE|৩৫০০}, {DISTRICT|কুমিল্লা}, {AREA|দত্তপাড়া}
