@@ -3,81 +3,107 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Thikana - Bangladeshi address parser (prototype)</title>
-<meta name="description" content="A prototype that splits a Bangladeshi address, typed in Bangla or English, into house, road, area, district, postcode and more.">
+<title>Thikana - Bangladeshi address parser</title>
+<meta name="description" content="Splits a Bangladeshi address, typed in Bangla or English, into house, road, area, district, postcode and more.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 2C9.9 2 5 6.9 5 13c0 8 11 17 11 17s11-9 11-17C27 6.9 22.1 2 16 2z' fill='%230f766e'/%3E%3Ccircle cx='16' cy='13' r='4.5' fill='white'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/assets/style.css">
 </head>
 <body>
-<header>
-  <h1>Thikana <span class="badge">prototype</span></h1>
-  <p class="lead">Splits a Bangladeshi address, typed in Bangla or English, into its parts.</p>
+<header class="top">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><path d="M16 2C9.9 2 5 6.9 5 13c0 8 11 17 11 17s11-9 11-17C27 6.9 22.1 2 16 2z"/><circle cx="16" cy="13" r="4.5"/></svg>
+    <div>
+      <h1>Thikana</h1>
+      <p class="lead">Type a Bangladeshi address in Bangla or English and see it split into house, road, area, district, postcode and more.</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <span id="pill" class="pill wait" aria-hidden="true"><span class="dot"></span><span id="pill-text">Connecting</span></span>
+    <button type="button" id="about-open" class="link">About &amp; privacy</button>
+  </div>
 </header>
 
 <main>
-  <section class="notice" aria-labelledby="privacy-h">
-    <h2 id="privacy-h">Please read before typing</h2>
-    <p><strong>Do not type a real person's address.</strong> Use the examples or made-up ones.
-    This app does not store what you type and logs only counts, never the text. It runs on a
-    free public host, and that host may keep its own logs of requests, which this app cannot
-    see or control. There are no cookies, no analytics and nothing is loaded from other sites.</p>
-  </section>
-
   <noscript><p class="notice">This page needs JavaScript to call the parser.</p></noscript>
 
-  <form id="form" novalidate>
-    <label for="text">Address</label>
+  <div id="wake" class="wake" role="status">
+    <p id="wake-text">Connecting to the model...</p>
+    <progress id="wake-bar" max="240" value="0">0</progress>
+    <button type="button" id="retry" class="secondary small" hidden>Try again</button>
+  </div>
+
+  <form id="form" class="card" novalidate>
+    <label for="text">Address to parse</label>
     <textarea id="text" name="text" rows="3" maxlength="500" autocomplete="off" spellcheck="false"
-              placeholder="House 12, Road 5, Mirpur-10, Dhaka-1216"></textarea>
+              placeholder="e.g. House 12, Road 5, Mirpur-10, Dhaka-1216"></textarea>
     <div class="row">
       <span id="count" class="count" aria-label="characters used">0 / 500</span>
       <span class="spacer"></span>
       <button type="button" id="clear" class="secondary">Clear</button>
-      <button type="submit" id="parse">Parse</button>
+      <button type="submit" id="parse"><span id="parse-label">Parse</span><kbd>Ctrl&nbsp;Enter</kbd></button>
     </div>
-    <p class="hint">Ctrl+Enter parses. Try an example:</p>
-    <div id="chips" class="chips">
-      <button type="button" data-text="House 12, Road 5, Mirpur-10, Dhaka-1216">English, Dhaka</button>
-      <button type="button" data-text="বাসা ১২, রোড ৫, ধানমন্ডি, ঢাকা-১২০৫">Bangla</button>
-      <button type="button" data-text="Flat 4B, House 7, Block C, Road 3, Banani, Dhaka 1213">Flat and block</button>
-      <button type="button" data-text="Vill: Kaunia, P.O: Kaunia, Thana: Kaunia, Dist: Rangpur">Village style</button>
-      <button type="button" data-text="Zindabazar, Sylhet Sadar, Sylhet 3100">Sylhet</button>
-      <button type="button" data-text="hello world" class="odd">Not an address</button>
+
+    <div class="examples">
+      <div class="examples-head">
+        <span id="examples-h">Try an example</span>
+        <button type="button" id="surprise" class="secondary small">Surprise me</button>
+      </div>
+      <div id="chips" class="chips" role="group" aria-labelledby="examples-h">
+        <button type="button" data-text="House 12, Road 5, Mirpur-10, Dhaka-1216">English, Dhaka</button>
+        <button type="button" data-text="বাসা ১২, রোড ৫, ধানমন্ডি, ঢাকা-১২০৫">Bangla</button>
+        <button type="button" data-text="Flat 4B, House 7, Block C, Road 3, Banani, Dhaka 1213">Flat and block</button>
+        <button type="button" data-text="Vill: Kaunia, P.O: Kaunia, Thana: Kaunia, Dist: Rangpur">Village style</button>
+        <button type="button" data-text="Zindabazar, Sylhet Sadar, Sylhet 3100">Sylhet</button>
+        <button type="button" data-text="hello world" class="odd">Not an address</button>
+      </div>
     </div>
-    <p id="status" class="status" role="status" aria-live="polite">Connecting...</p>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
   </form>
 
   <p id="error" class="error" role="alert" hidden></p>
 
-  <section id="result" aria-labelledby="result-h" aria-live="polite" hidden>
-    <h2 id="result-h">Result</h2>
+  <section id="result" class="card result" aria-labelledby="result-h" aria-live="polite" hidden>
+    <div class="result-head">
+      <h2 id="result-h">Result</h2>
+      <div class="actions">
+        <button type="button" id="copy-parts" class="secondary small">Copy parts</button>
+        <button type="button" id="copy-json" class="secondary small">Copy JSON</button>
+      </div>
+    </div>
     <p id="marked" class="marked"></p>
+    <div id="legend" class="legend" role="group" aria-label="Parts found. Hover or click one to pick it out"></div>
     <table class="fields">
       <caption class="sr-only">Labelled parts of the address</caption>
       <tbody id="fields"></tbody>
     </table>
+    <p id="empty-note" class="note" hidden>Nothing was labelled. That text does not look like an address the model knows, so try one of the examples.</p>
     <p id="meta" class="meta"></p>
     <details>
       <summary>Raw response</summary>
       <pre id="raw"></pre>
     </details>
   </section>
-
-  <section aria-labelledby="about-h" class="about">
-    <h2 id="about-h">What this is, and is not</h2>
-    <p>Model: <span id="model">loading...</span>. It marks spans of text as house, road, block,
-    area, upazila, district, division, postcode or landmark. The limits below come straight from
-    the running service, not from this page:</p>
-    <ul id="limits"><li>Loading...</li></ul>
-    <p>It does not look anything up, so it will happily label text that is not an address at all
-    (try the last example). Treat its output as a draft, never as a verified address.</p>
-  </section>
 </main>
 
-<footer>
+<dialog id="about" aria-labelledby="about-h">
+  <h2 id="about-h">About the model</h2>
+  <p>Model: <span id="model">loading...</span>. It marks spans of text as house, road, block,
+  area, upazila, district, division, postcode or landmark. The limits below come straight from
+  the running service, not from this page:</p>
+  <ul id="limits"><li>Loading...</li></ul>
+  <p>It does not look anything up, so it will happily label text that is not an address at all
+  (try "Not an address"). Treat its output as a draft, never as a verified address.</p>
+  <h2>Privacy</h2>
+  <p><strong>Please don't type a real person's address.</strong> Use an example or a made-up one.</p>
+  <ul>
+    <li>This app does not store what you type and logs only counts, never the text.</li>
+    <li>It runs on a free public host. That host may keep its own logs of requests, which this app cannot see or control.</li>
+    <li>There are no cookies, no analytics and nothing is loaded from other sites.</li>
+  </ul>
   <p>A learning project: not a product, with no uptime promise.</p>
-</footer>
+  <button type="button" id="about-close">Close</button>
+</dialog>
 
 <script src="/assets/render.js"></script>
 <script src="/assets/app.js"></script>

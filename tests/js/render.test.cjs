@@ -168,3 +168,43 @@ test("formatMs switches to seconds at one second", () => {
   assert.equal(T.formatMs(999.6), "1000 ms");
   assert.equal(T.formatMs(1500), "1.5 s");
 });
+
+test("labelCounts counts what the page highlights, in label order, and nothing else", () => {
+  const text = "House 12, Road 5, Road 7, Dhaka";
+  const entities = [
+    { label: "DISTRICT", start: 26, end: 31 },
+    { label: "ROAD", start: 10, end: 16 },
+    { label: "HOUSE", start: 0, end: 8 },
+    { label: "ROAD", start: 18, end: 24 },
+    { label: "ROAD", start: 500, end: 600 },                                // out of range: ignored
+    { label: "NOPE", start: 0, end: 2 },                                    // unknown label: ignored
+  ];
+  assert.deepEqual(T.labelCounts(text, entities).map((p) => [p.label, p.name, p.count]),
+    [["HOUSE", "House", 1], ["ROAD", "Road", 2], ["DISTRICT", "District", 1]]);
+  assert.deepEqual(T.labelCounts("hello", []), []);
+  assert.deepEqual(T.labelCounts("hello", undefined), []);
+});
+
+test("summaryText is one 'Name: values' line per found part, in label order", () => {
+  const fields = { road: ["Road 5", "Road 7"], house: ["House 12"], area: [], district: ["Dhaka"] };
+  assert.equal(T.summaryText(fields), "House: House 12\nRoad: Road 5, Road 7\nDistrict: Dhaka");
+  assert.equal(T.summaryText({}), "");
+  assert.equal(T.summaryText(null), "");
+});
+
+test("counterState warns in the last tenth and at the limit", () => {
+  assert.equal(T.counterState(0, 500), "");
+  assert.equal(T.counterState(449, 500), "");
+  assert.equal(T.counterState(450, 500), "near");
+  assert.equal(T.counterState(499, 500), "near");
+  assert.equal(T.counterState(500, 500), "full");
+});
+
+test("cycleExample moves to the next example, wraps round, and starts at the first for typed text", () => {
+  const list = ["a", "b", "c"];
+  assert.equal(T.cycleExample(list, "a"), "b");
+  assert.equal(T.cycleExample(list, "c"), "a");
+  assert.equal(T.cycleExample(list, "something I typed"), "a");
+  assert.equal(T.cycleExample(list, ""), "a");
+  assert.equal(T.cycleExample([], "a"), "");
+});

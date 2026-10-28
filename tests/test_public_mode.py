@@ -258,3 +258,20 @@ def test_the_dockerfile_and_allowlist_include_the_web_directory():
     for name in ("index.html", "style.css", "render.js", "app.js"):
         assert (WEB / name).is_file()
     assert {p.name for p in WEB.iterdir()} == {"index.html", "style.css", "render.js", "app.js"}   # nothing stray ships
+
+
+def test_the_page_keeps_its_privacy_and_prototype_statements_and_has_no_bottom_clutter():
+    html = (WEB / "index.html").read_text(encoding="utf-8")
+    flat = " ".join(re.sub(r"<[^>]+>", " ", html).split())
+    for promise in ("Please don't type a real person's address",
+                    "does not store what you type and logs only counts, never the text",
+                    "That host may keep its own logs of requests, which this app cannot see or control",
+                    "no cookies, no analytics and nothing is loaded from other sites",
+                    "Treat its output as a draft, never as a verified address",
+                    "not a product, with no uptime promise"):
+        assert promise in flat, promise
+    assert 'class="badge"' not in html and "<title>Thikana - Bangladeshi address parser</title>" in html   # no label
+    assert 'class="privacy"' not in html               # the strip is gone; the same facts live in the dialog
+    assert "<footer" not in html                       # the old footer and "What this is, and is not" section are gone
+    assert "What this is, and is not" not in html
+    assert 'id="about"' in html and "<dialog" in html  # the model's limits still reach the reader, one click away

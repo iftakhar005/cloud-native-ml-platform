@@ -69,6 +69,38 @@
     return ms < 1000 ? Math.round(ms) + " ms" : (ms / 1000).toFixed(1) + " s";
   }
 
+  /* Which parts were found and how many of each, in the fixed label order. Counted from the
+     same runs the page highlights, so the legend can never disagree with the highlighting. */
+  function labelCounts(text, entities) {
+    var counts = {};
+    segments(text, entities).forEach(function (s) {
+      if (s.label) { counts[s.label] = (counts[s.label] || 0) + 1; }
+    });
+    return LABELS.filter(function (label) { return counts[label]; }).map(function (label) {
+      return { label: label, name: NAMES[label], count: counts[label] };
+    });
+  }
+
+  /* The fields as plain text for the clipboard: "House: House 12" per line. */
+  function summaryText(fields) {
+    return fieldRows(fields).map(function (row) {
+      return row.name + ": " + row.values.join(", ");
+    }).join("\n");
+  }
+
+  /* "" while there is room, "near" in the last tenth, "full" at the limit. */
+  function counterState(used, max) {
+    if (used >= max) { return "full"; }
+    return used >= Math.floor(max * 0.9) ? "near" : "";
+  }
+
+  /* The example after `current` in the list, wrapping round; the first one if `current` is
+     not an example (for instance, the person has typed their own text). */
+  function cycleExample(examples, current) {
+    if (!examples.length) { return ""; }
+    return examples[(examples.indexOf(current) + 1) % examples.length];
+  }
+
   /* How long the page keeps asking before it gives up on a server that is waking from sleep.
      Measured, not guessed: the image under a 0.1 CPU limit (what a free host gives) took 50 to
      127 seconds to become ready, and Render's own docs say a wake takes "about one minute".
@@ -102,6 +134,7 @@
   var api = {
     LABELS: LABELS, NAMES: NAMES, WAKE_ATTEMPTS: WAKE_ATTEMPTS, WAKE_DELAY_MS: WAKE_DELAY_MS,
     segments: segments, fieldRows: fieldRows, describeError: describeError, formatMs: formatMs,
+    labelCounts: labelCounts, summaryText: summaryText, counterState: counterState, cycleExample: cycleExample,
     connectWithRetry: connectWithRetry
   };
   if (typeof module === "object" && module.exports) { module.exports = api; } else { root.Thikana = api; }
