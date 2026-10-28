@@ -27,7 +27,7 @@ you have not trained it yet: `python -m thikana.training.train_all`.
 |---|---|
 | `POST /api/v1/parse` | one address -> labelled parts |
 | `POST /api/v1/parse/batch` | up to 100 addresses in one request |
-| `GET /api/v1/model` | which model is serving, its verifiable version, its limitations |
+| `GET /api/v1/model` | which model is serving, its verifiable version, its limitations, and `limits` (`max_batch`, `max_text_chars`, `max_body_bytes`: what this server accepts) |
 | `GET /healthz` | **liveness**: the process is up. Checks nothing external, on purpose |
 | `GET /readyz` | **readiness**: 200 only when a model is loaded, else 503 |
 | `GET /metrics` | Prometheus metrics |
@@ -156,6 +156,20 @@ A bad value fails at startup with a message naming the variable.
 
 The web page is served at `/` (static files under `/assets/`, strict CSP, nothing loaded from other
 hosts); it is the same process as the API, so there is no CORS and no second service.
+
+**Files on the web page.** The "A file" tab takes up to 5 CSV, TSV or TXT files (500 rows and 2 MB each) at
+once and hands each back as a CSV (or JSON). There is no upload endpoint: the browser reads the file, finds
+the address column (or lets you pick one), and sends the addresses to `POST /api/v1/parse/batch` in groups
+that fit the `limits` from `GET /api/v1/model` (10 per request on the public host). On a 429 it waits for
+`Retry-After` and carries on; three groups in a row failing stops the file. The CSV keeps every original
+column, then adds `parsed_house` ... `parsed_landmark` and `parse_status` (`ok`, `no_parts_found`, `empty`,
+`too_long`, `error_network` (or `error_rate_limited`, `error_not_ready`, `error_rejected`,
+`error_bad_response`), `not_run`). If no row of a file could be parsed, the page shows why and offers no
+download, so a stopped server cannot hand back a file that is all errors. Cells that a spreadsheet would run as a formula (`=`, `+`, `-`, `@`, other
+than plain numbers) get a leading `'`, and the file starts with a byte-order mark so Excel shows Bangla.
+PDF and Excel files are not supported: a PDF parser on a public 0.1 CPU host is attack surface and a new
+dependency, and reading addresses out of a PDF layout is unreliable. The parsing of the file is tested in
+`tests/js/files.test.cjs`.
 
 Every response carries `X-Request-ID` (echoed if valid, else generated) and
 `X-Thikana-Instance`. The second exists so that behind a load balancer you can see

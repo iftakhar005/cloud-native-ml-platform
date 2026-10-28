@@ -49,6 +49,11 @@ class ModelInfo(BaseModel):
     labels: list[str]
     git_sha: str
     limitations: list[str]
+    limits: dict[str, int] = Field(
+        default_factory=dict,
+        description="What this server accepts: max_batch (addresses per batch request), "
+                    "max_text_chars (characters per address) and max_body_bytes (request size). "
+                    "The web page reads these to split an uploaded file into requests that fit.")
 
 
 class ErrorDetail(BaseModel):

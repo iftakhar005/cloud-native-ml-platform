@@ -137,7 +137,7 @@ def test_the_scripts_never_use_ways_of_putting_text_on_the_page_as_markup_or_sto
 
 def test_the_page_only_talks_to_its_own_api():
     code = (WEB / "app.js").read_text(encoding="utf-8")
-    assert set(re.findall(r'fetch\("([^"]+)"', code)) == {"/api/v1/model", "/api/v1/parse"}
+    assert set(re.findall(r'fetch\("([^"]+)"', code)) == {"/api/v1/model", "/api/v1/parse", "/api/v1/parse/batch"}
 
 
 # ---- rate limiter: the unit -----------------------------------------------------------------
@@ -268,6 +268,7 @@ def test_the_page_keeps_its_privacy_and_prototype_statements_and_has_no_bottom_c
                     "That host may keep its own logs of requests, which this app cannot see or control",
                     "no cookies, no analytics and nothing is loaded from other sites",
                     "Treat its output as a draft, never as a verified address",
+                    "A file you choose is read in your browser and is never uploaded as a file",
                     "not a product, with no uptime promise"):
         assert promise in flat, promise
     assert 'class="badge"' not in html and "<title>Thikana - Bangladeshi address parser</title>" in html   # no label

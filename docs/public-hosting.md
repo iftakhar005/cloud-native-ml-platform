@@ -107,7 +107,7 @@ service, and keeping it local for development, tests and demonstrations is the s
 |---|---|---|
 | `/`, `/assets/*` | yes | the page and its three files |
 | `POST /api/v1/parse` | yes | the product. Rate limited, 500 characters at most |
-| `POST /api/v1/parse/batch` | yes | at most `THIKANA_MAX_BATCH` (use 10) addresses; counts as one request toward the rate limit |
+| `POST /api/v1/parse/batch` | yes | at most `THIKANA_MAX_BATCH` (use 10) addresses; counts as one request toward the rate limit. The page's file upload uses it: 500 rows is 50 requests, so a file of that size meets the limit (60 a minute, burst 20) and waits. If the host puts all visitors in one rate-limit bucket (`THIKANA_TRUSTED_PROXY_HOPS`, untested on Render), one large file can briefly slow everyone else, which is why a file is capped at 500 rows |
 | `GET /api/v1/model` | yes | model name, a hash identifying the model file, the **git commit** it was built from, and its stated limitations |
 | `/healthz`, `/readyz` | yes | the host's health checks need them; `/readyz` also shows the model hash |
 | `/metrics` | **no (404)** | request counts and model internals are for your own Prometheus |
